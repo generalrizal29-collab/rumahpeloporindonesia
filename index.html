@@ -55,8 +55,8 @@ const html=htm.bind(React.createElement);
 const {ResponsiveContainer,BarChart,Bar,XAxis,YAxis,Tooltip,LineChart,Line,PieChart,Pie,Cell,CartesianGrid}=Recharts;
 
 // ===== KONFIGURASI SUPABASE: isi di sini, atau biarkan kosong lalu isi lewat layar setup pertama =====
-const SUPABASE_URL="";
-const SUPABASE_ANON_KEY="";
+const SUPABASE_URL="https://fgzllccotccxogncpsgs.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_nzb3wHiuXwWJksFaYkoOrw_Bq8pVVmz";
 const ls=(k,v)=>{try{return v===undefined?localStorage.getItem(k):localStorage.setItem(k,v)}catch(e){return ''}};
 const CU=SUPABASE_URL||ls('rpi_u')||'', CK=SUPABASE_ANON_KEY||ls('rpi_k')||'';
 const sb=CU&&CK?supabase.createClient(CU,CK):null;
