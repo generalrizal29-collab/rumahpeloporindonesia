@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RPI - Sistem Laporan Kunjungan & Donasi Lapangan</title>
+<meta name="description" content="Platform resmi Rumah Pelopor Indonesia untuk manajemen relawan lapangan, pencatatan kunjungan donatur secara real-time, transparansi dana, dan pelaporan eksekutif terintegrasi.">
+<meta property="og:title" content="RPI - Sistem Laporan Kunjungan & Donasi Lapangan">
+<meta property="og:description" content="Platform resmi Rumah Pelopor Indonesia untuk manajemen relawan lapangan, pencatatan kunjungan donatur secara real-time, transparansi dana, dan pelaporan eksekutif terintegrasi.">
+<!-- GANTI dengan URL absolut logo RPI (https://domainmu/logo-rpi.png) agar preview WhatsApp muncul -->
+<meta property="og:image" content="https://GANTI-DOMAIN-KAMU/logo-rpi.png">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#FF7A00">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#1f2937;--mut:#6b7280;--bd:#e5e7eb;--or:#FF7A00;--orl:#fff4e8}
+@media (prefers-color-scheme:dark){:root{--bg:#111317;--card:#1b1e24;--tx:#f3f4f6;--mut:#9ca3af;--bd:#2d323b;--orl:#2a1d10}}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font-family:Inter,system-ui,sans-serif;font-size:14px;padding-top:env(safe-area-inset-top,0)}
+.wrap{max-width:1000px;margin:0 auto;padding:0 14px 90px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.btn{background:var(--or);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:14px}
+.btn:disabled{opacity:.5}.btn.o{background:transparent;color:var(--or);border:1px solid var(--or)}.btn.g{background:#16a34a}.btn.r{background:#dc2626}.btn.s{padding:6px 10px;font-size:12px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;margin-top:4px}
+label{font-size:12px;color:var(--mut);display:block;margin-top:10px}
+.grid{display:grid;gap:10px}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.badge{padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;display:inline-block}
+.Pending{background:#fef3c7;color:#92400e}.Verified{background:#dcfce7;color:#166534}.Rejected{background:#fee2e2;color:#991b1b}.St{background:#e0e7ff;color:#3730a3}
+.nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bd);display:flex;padding-bottom:env(safe-area-inset-bottom,0);z-index:20}
+.nav button{flex:1;background:none;border:0;padding:8px 0;color:var(--mut);font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.nav button.a{color:var(--or);border-top:2px solid var(--or)}
+.hero{background:linear-gradient(120deg,#ff9a3c,#FF7A00);color:#fff;border-radius:16px;padding:20px;margin-bottom:12px}.hero h2{margin:0 0 4px;font-size:22px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}.sc{overflow-x:auto}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:14px;z-index:50}
+.modal>div{background:#fff;color:#111;border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:90vh;overflow:auto}
+header.top{position:sticky;top:0;z-index:15;background:var(--card);border-bottom:1px solid var(--bd);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.logo{font-weight:800;color:var(--or);font-size:18px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.chips button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:6px 12px;cursor:pointer;font-size:12px}.chips button.a{background:var(--or);color:#fff;border-color:var(--or)}
+.center{max-width:380px;margin:8vh auto;padding:0 14px}
+@media print{body *{visibility:hidden}#kw,#kw *{visibility:visible}#kw{position:absolute;left:0;top:0;width:100%}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-is@18.3.1/umd/react-is.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<script>
+const {useState,useEffect,useCallback}=React;
+const html=htm.bind(React.createElement);
+const {ResponsiveContainer,BarChart,Bar,XAxis,YAxis,Tooltip,LineChart,Line,PieChart,Pie,Cell,CartesianGrid}=Recharts;
+
+// ===== KONFIGURASI SUPABASE: isi di sini, atau biarkan kosong lalu isi lewat layar setup pertama =====
+const SUPABASE_URL="";
+const SUPABASE_ANON_KEY="";
+const ls=(k,v)=>{try{return v===undefined?localStorage.getItem(k):localStorage.setItem(k,v)}catch(e){return ''}};
+const CU=SUPABASE_URL||ls('rpi_u')||'', CK=SUPABASE_ANON_KEY||ls('rpi_k')||'';
+const sb=CU&&CK?supabase.createClient(CU,CK):null;
+
+// ===== PWA: manifest dinamis (single-file) =====
+(function(){try{const ic='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#FF7A00"/><text x="96" y="118" font-size="72" font-weight="800" text-anchor="middle" fill="#fff" font-family="Arial">RPI</text></svg>');
+const m={name:'RPI Donasi Lapangan',short_name:'RPI',start_url:location.href.split('#')[0],display:'standalone',background_color:'#ffffff',theme_color:'#FF7A00',icons:[{src:ic,sizes:'192x192 512x512',type:'image/svg+xml',purpose:'any'}]};
+const l=document.createElement('link');l.rel='manifest';l.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));document.head.appendChild(l);
+const a=document.createElement('link');a.rel='apple-touch-icon';a.href=ic;document.head.appendChild(a);}catch(e){}})();
+
+const Rp=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
+const Ic=({d})=>html`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d=${d}/></svg>`;
+const P={home:'M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',plus:'M12 5v14M5 12h14',list:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',user:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8'};
+const METODE=['Cash','Transfer BNI','Transfer Mandiri','Transfer BSI','QRIS'];
+const STATUS=['Prospek','Berminat','Menolak','Berhasil'];
+const tgl=v=>(v.created_at||'').slice(0,10);
+const isV=v=>v.verif_status==='Verified';
+const err=e=>alert(e&&e.message?e.message:String(e));
+
+function Setup(){
+  const [u,setU]=useState(''),[k,setK]=useState('');
+  return html`<div class="center card"><div class="logo">RPI</div><b>Konfigurasi Supabase</b><p style=${{color:'var(--mut)'}}>Isi sekali di perangkat ini (atau isi konstanta SUPABASE_URL & SUPABASE_ANON_KEY di kode).</p>
+  <label>Project URL</label><input value=${u} onInput=${e=>setU(e.target.value)} placeholder="https://xxxx.supabase.co"/>
+  <label>Anon public key</label><input value=${k} onInput=${e=>setK(e.target.value)}/>
+  <div style=${{marginTop:14}}><button class="btn" onClick=${()=>{if(u&&k){ls('rpi_u',u.trim());ls('rpi_k',k.trim());location.reload();}}}>Simpan</button></div></div>`;
+}
+
+function Login(){
+  const [e,setE]=useState(''),[p,setP]=useState(''),[b,setB]=useState(false);
+  const go=async()=>{setB(true);const {error}=await sb.auth.signInWithPassword({email:e.trim(),password:p});setB(false);if(error)alert('Login gagal: '+error.message);};
+  return html`<div class="center card"><div class="logo" style=${{fontSize:28}}>RPI</div><div style=${{color:'var(--mut)'}}>Rumah Pelopor Indonesia · #jembatankebaikan</div>
+  <b style=${{display:'block',marginTop:16}}>Yuk masuk untuk mulai melapor</b>
+  <label>Email</label><input type="email" value=${e} onInput=${x=>setE(x.target.value)}/>
+  <label>Password</label><input type="password" value=${p} onInput=${x=>setP(x.target.value)} onKeyDown=${x=>x.key==='Enter'&&go()}/>
+  <div style=${{marginTop:14}}><button class="btn" style=${{width:'100%'}} disabled=${b} onClick=${go}>Masuk Sekarang</button></div>
+  <p style=${{fontSize:12,color:'var(--mut)'}}>Akun dibuat oleh Owner. Lupa password? Hubungi Owner.</p></div>`;
+}
+
+function Receipt({v,lem,onClose}){
+  return html`<div class="modal" onClick=${onClose}><div onClick=${e=>e.stopPropagation()}><div id="kw">
+    <div style=${{textAlign:'center',borderBottom:'2px solid #FF7A00',paddingBottom:8}}>
+      ${lem&&lem.logo_url?html`<img src=${lem.logo_url} style=${{height:48}}/>`:html`<div style=${{fontWeight:800,fontSize:22,color:'#FF7A00'}}>RPI</div>`}
+      <div style=${{fontSize:12}}>${lem?lem.nama:'Rumah Pelopor Indonesia'}</div><b>KUITANSI DIGITAL</b></div>
+    <table><tbody>${[['No.',v.no_kuitansi],['Tanggal',tgl(v)],['Donatur',v.donatur_nama],['Kategori',v.kategori&&v.kategori.nama],['Metode',v.metode],['Relawan',v.relawan&&v.relawan.nama]].map(([a,b])=>html`<tr key=${a}><td>${a}</td><td><b>${b}</b></td></tr>`)}</tbody></table>
+    <div style=${{textAlign:'center',fontSize:22,fontWeight:800,margin:'14px 0'}}>${Rp(v.nominal)}</div>
+    <div style=${{fontSize:11,textAlign:'center'}}>Jazakumullahu khairan. Semoga menjadi amal jariyah.</div></div>
+    <div style=${{display:'flex',gap:8,marginTop:14}}><button class="btn" onClick=${()=>window.print()}>Cetak</button><button class="btn o" onClick=${onClose}>Tutup</button></div></div></div>`;
+}
+
+function Stats({list}){
+  const it=[['Kunjungan',list.length],['Berhasil',list.filter(v=>v.status==='Berhasil').length],['Dana Terverifikasi',Rp(list.filter(isV).reduce((a,v)=>a+v.nominal,0))],['Menunggu Verifikasi',list.filter(v=>v.verif_status==='Pending').length]];
+  return html`<div class="grid g4" style=${{marginBottom:12}}>${it.map(([a,b])=>html`<div class="card" style=${{marginBottom:0}} key=${a}><div style=${{color:'var(--mut)',fontSize:12}}>${a}</div><div style=${{fontSize:18,fontWeight:800,color:'var(--or)'}}>${b}</div></div>`)}</div>`;
+}
+
+function Tbl({list,act,rc}){
+  return html`<div class="card sc"><table><thead><tr><th>Tgl</th><th>Relawan</th><th>Donatur</th><th>Status</th><th>Nominal</th><th>Metode</th><th>Verif</th>${(act||rc)&&html`<th></th>`}</tr></thead><tbody>
+  ${list.length?list.map(v=>html`<tr key=${v.id}><td>${tgl(v)}</td><td>${v.relawan&&v.relawan.nama}</td><td>${v.donatur_nama}</td><td><span class="badge St">${v.status}</span></td><td>${v.nominal?Rp(v.nominal):'-'}</td><td>${v.metode||'-'}</td>
+  <td>${v.verif_status?html`<span class=${'badge '+v.verif_status}>${v.verif_status}</span>`:'-'}</td>
+  ${act&&html`<td>${act(v)}</td>`}${rc&&html`<td>${isV(v)&&html`<button class="btn s o" onClick=${()=>rc(v)}>Kuitansi</button>`}</td>`}</tr>`):html`<tr><td colspan="8" style=${{color:'var(--mut)'}}>Belum ada data</td></tr>`}</tbody></table></div>`;
+}
+
+function Form({me,d,reload,done}){
+  const init={did:'',nama:'',hp:'',status:'Prospek',nominal:'',kat:'',metode:'Cash',file:null,cat:''};
+  const [f,setF]=useState(init),[busy,setBusy]=useState(false);
+  const u=(k,v)=>setF(s=>({...s,[k]:v}));const ok=f.status==='Berhasil';
+  const save=async()=>{
+    let did=f.did,nama=f.nama.trim();if(did)nama=d.don.find(x=>x.id===did).nama;
+    if(!nama)return alert('Pilih atau isi nama donatur');
+    if(ok){if(!(+f.nominal>0))return alert('Nominal wajib diisi');if(!f.kat)return alert('Pilih kategori');if(f.metode!=='Cash'&&!f.file)return alert('Upload bukti pembayaran');}
+    setBusy(true);
+    try{
+      if(!did){const r=await sb.from('donatur').insert({nama,no_hp:f.hp||null}).select().single();if(r.error)throw r.error;did=r.data.id;}
+      let path=null;
+      if(ok&&f.file){path=me.id+'/'+Date.now()+'_'+f.file.name.replace(/[^\w.]/g,'_');const r=await sb.storage.from('bukti').upload(path,f.file);if(r.error)throw r.error;}
+      const r=await sb.from('kunjungan').insert({donatur_id:did,donatur_nama:nama,status:f.status,catatan:f.cat||null,nominal:ok?+f.nominal:0,kategori_id:ok?+f.kat:null,metode:ok?f.metode:null,bukti_path:ok?path:null});
+      if(r.error)throw r.error;
+      setF(init);reload();done();
+    }catch(e){err(e);}
+    setBusy(false);
+  };
+  return html`<div class="card"><b>Lapor Kunjungan Baru</b>
+  <label>Donatur</label><select value=${f.did} onChange=${e=>u('did',e.target.value)}><option value="">+ Donatur baru</option>${d.don.map(x=>html`<option key=${x.id} value=${x.id}>${x.nama}</option>`)}</select>
+  ${!f.did&&html`<div><input placeholder="Nama donatur" value=${f.nama} onInput=${e=>u('nama',e.target.value)}/><input placeholder="No. HP (opsional)" value=${f.hp} onInput=${e=>u('hp',e.target.value)}/></div>`}
+  <label>Status Kunjungan</label><div class="chips" style=${{margin:'4px 0'}}>${STATUS.map(s=>html`<button key=${s} class=${f.status===s?'a':''} onClick=${()=>u('status',s)}>${s}</button>`)}</div>
+  ${ok&&html`<div><label>Nominal (Rp)</label><input type="number" inputmode="numeric" value=${f.nominal} onInput=${e=>u('nominal',e.target.value)}/>
+  <label>Kategori</label><select value=${f.kat} onChange=${e=>u('kat',e.target.value)}><option value="">Pilih kategori</option>${d.cat.filter(c=>c.aktif).map(c=>html`<option key=${c.id} value=${c.id}>${c.nama}</option>`)}</select>
+  <label>Metode Bayar</label><select value=${f.metode} onChange=${e=>u('metode',e.target.value)}>${METODE.map(m=>html`<option key=${m}>${m}</option>`)}</select>
+  ${f.metode.startsWith('Transfer')&&html`<div style=${{fontSize:12,color:'var(--mut)',marginTop:6}}>Rekening: ${d.rek.filter(r=>r.aktif&&f.metode.endsWith(r.bank)).map(r=>r.bank+' '+r.no_rek+' a.n. '+r.atas_nama).join(' | ')||'-'}</div>`}
+  ${f.metode!=='Cash'&&html`<div><label>Bukti Pembayaran</label><input type="file" accept="image/*" onChange=${e=>u('file',e.target.files[0]||null)}/></div>`}</div>`}
+  <label>Catatan (opsional)</label><input value=${f.cat} onInput=${e=>u('cat',e.target.value)}/>
+  <div style=${{marginTop:14}}><button class="btn" style=${{width:'100%'}} disabled=${busy} onClick=${save}>${busy?'Menyimpan...':'Kirim Laporan'}</button></div></div>`;
+}
+
+const COL=['#FF7A00','#3b82f6','#16a34a','#a855f7','#ef4444'];
+const csvCell=x=>'"'+String(x==null?'':x).replace(/"/g,'""')+'"';
+function exportCsv(list){
+  const rows=[['Tanggal','No Kuitansi','Relawan','Donatur','Status','Nominal','Kategori','Metode','Verifikasi'],...list.map(v=>[tgl(v),v.no_kuitansi,v.relawan&&v.relawan.nama,v.donatur_nama,v.status,v.nominal,v.kategori&&v.kategori.nama,v.metode,v.verif_status])];
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.map(csvCell).join(',')).join('\n')],{type:'text/csv'}));a.download='rpi-donasi-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+
+function Dash({d}){
+  const ver=d.k.filter(isV),sum=l=>l.reduce((a,v)=>a+v.nominal,0);
+  const byCat=d.cat.map(c=>({n:c.nama,v:sum(ver.filter(x=>x.kategori_id===c.id))}));
+  const day={};ver.forEach(x=>day[tgl(x)]=(day[tgl(x)]||0)+x.nominal);
+  const trend=Object.keys(day).sort().slice(-30).map(k=>({n:k.slice(5),v:day[k]}));
+  const byM=METODE.map(m=>({n:m,v:sum(ver.filter(x=>x.metode===m))})).filter(x=>x.v>0);
+  const ax=v=>v>=1e6?(v/1e6)+'jt':v;
+  return html`<div><${Stats} list=${d.k}/>
+  <div class="card"><b>Dana per Kategori</b><div style=${{height:220}}><${ResponsiveContainer}><${BarChart} data=${byCat}><${CartesianGrid} strokeDasharray="3 3"/><${XAxis} dataKey="n" fontSize=${11}/><${YAxis} fontSize=${11} tickFormatter=${ax}/><${Tooltip} formatter=${Rp}/><${Bar} dataKey="v" fill="#FF7A00" radius=${[6,6,0,0]}/><//><//></div></div>
+  <div class="card"><b>Tren Harian (30 hari terakhir)</b><div style=${{height:220}}><${ResponsiveContainer}><${LineChart} data=${trend}><${CartesianGrid} strokeDasharray="3 3"/><${XAxis} dataKey="n" fontSize=${11}/><${YAxis} fontSize=${11} tickFormatter=${ax}/><${Tooltip} formatter=${Rp}/><${Line} dataKey="v" stroke="#3b82f6" strokeWidth=${2} dot=${false}/><//><//></div></div>
+  <div class="card"><b>Metode Pembayaran</b><div style=${{height:240}}><${ResponsiveContainer}><${PieChart}><${Pie} data=${byM} dataKey="v" nameKey="n" innerRadius=${55} outerRadius=${85} label=${e=>e.n}>${byM.map((_,i)=>html`<${Cell} key=${i} fill=${COL[i%5]}/>`)}<//><${Tooltip} formatter=${Rp}/><//><//></div></div></div>`;
+}
+
+function Verif({d,reload}){
+  const set=async(id,s)=>{const r=await sb.from('kunjungan').update({verif_status:s}).eq('id',id);if(r.error)err(r.error);else reload();};
+  const bukti=async p=>{const r=await sb.storage.from('bukti').createSignedUrl(p,300);if(r.error)err(r.error);else window.open(r.data.signedUrl,'_blank');};
+  const list=d.k.filter(v=>v.status==='Berhasil').sort((a,b)=>(a.verif_status==='Pending'?0:1)-(b.verif_status==='Pending'?0:1));
+  return html`<${Tbl} list=${list} act=${v=>html`<span style=${{display:'flex',gap:4}}>${v.bukti_path&&html`<button class="btn s o" onClick=${()=>bukti(v.bukti_path)}>Bukti</button>`}
+  ${v.verif_status==='Pending'&&html`<button class="btn s g" onClick=${()=>set(v.id,'Verified')}>Approve</button><button class="btn s r" onClick=${()=>set(v.id,'Rejected')}>Reject</button>`}</span>`}/>`;
+}
+
+function Master({d,reload}){
+  const [nc,setNc]=useState(''),[rk,setRk]=useState({bank:'BNI',no_rek:'',atas_nama:''}),[lm,setLm]=useState(d.lem||{nama:'Rumah Pelopor Indonesia',logo_url:'',alamat:''});
+  const q=async p=>{const r=await p;if(r.error)err(r.error);else reload();};
+  return html`<div><div class="card"><b>Kategori Donasi</b>
+  ${d.cat.map(c=>html`<div key=${c.id} style=${{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid var(--bd)'}}>${c.nama} ${!c.aktif&&'(nonaktif)'}<button class="btn s o" onClick=${()=>q(sb.from('kategori').update({aktif:!c.aktif}).eq('id',c.id))}>${c.aktif?'Nonaktifkan':'Aktifkan'}</button></div>`)}
+  <div style=${{display:'flex',gap:8,marginTop:8}}><input style=${{marginTop:0}} value=${nc} onInput=${e=>setNc(e.target.value)} placeholder="Kategori baru"/><button class="btn" onClick=${()=>{if(nc.trim()){q(sb.from('kategori').insert({nama:nc.trim()}));setNc('');}}}>Tambah</button></div></div>
+  <div class="card"><b>Rekening Lembaga</b>
+  ${d.rek.map(r=>html`<div key=${r.id} style=${{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid var(--bd)'}}><span>${r.bank} · ${r.no_rek} · ${r.atas_nama}</span><button class="btn s r" onClick=${()=>q(sb.from('rekening').delete().eq('id',r.id))}>Hapus</button></div>`)}
+  <select value=${rk.bank} onChange=${e=>setRk({...rk,bank:e.target.value})}>${['BNI','Mandiri','BSI'].map(b=>html`<option key=${b}>${b}</option>`)}</select>
+  <input placeholder="No. rekening" value=${rk.no_rek} onInput=${e=>setRk({...rk,no_rek:e.target.value})}/><input placeholder="Atas nama" value=${rk.atas_nama} onInput=${e=>setRk({...rk,atas_nama:e.target.value})}/>
+  <div style=${{marginTop:10}}><button class="btn" onClick=${()=>{if(rk.no_rek&&rk.atas_nama){q(sb.from('rekening').insert(rk));setRk({...rk,no_rek:'',atas_nama:''});}}}>Tambah Rekening</button></div></div>
+  <div class="card"><b>Setting Lembaga</b><label>Nama</label><input value=${lm.nama||''} onInput=${e=>setLm({...lm,nama:e.target.value})}/>
+  <label>URL Logo (https://...)</label><input value=${lm.logo_url||''} onInput=${e=>setLm({...lm,logo_url:e.target.value})}/><label>Alamat</label><input value=${lm.alamat||''} onInput=${e=>setLm({...lm,alamat:e.target.value})}/>
+  <div style=${{marginTop:10}}><button class="btn" onClick=${()=>q(sb.from('lembaga').update({nama:lm.nama,logo_url:lm.logo_url||null,alamat:lm.alamat||null}).eq('id',1))}>Simpan</button></div></div></div>`;
+}
+
+function Team({d,reload}){
+  const [txt,setTxt]=useState(''),[role,setRole]=useState('relawan'),[co,setCo]=useState(''),[res,setRes]=useState(null),[busy,setBusy]=useState(false);
+  const koors=d.prof.filter(p=>p.role==='koordinator');
+  const upd=async(id,patch)=>{const r=await sb.from('profiles').update(patch).eq('id',id);if(r.error)err(r.error);else reload();};
+  const rnd=()=>'RPI-'+Math.random().toString(36).slice(2,8);
+  const create=async()=>{
+    const users=txt.split('\n').map(l=>l.split(',').map(s=>s.trim())).filter(a=>a[0]&&a[1]).map(a=>({nama:a[0],email:a[1],no_hp:a[2]||'',password:a[3]||rnd(),role,koordinator_id:role==='relawan'?(co||null):null}));
+    if(!users.length)return alert('Format tiap baris: nama, email, no_hp, password(opsional)');
+    if(users.length>50)return alert('Maksimal 50 akun sekali buat');
+    setBusy(true);const r=await sb.functions.invoke('admin-create-users',{body:{users}});setBusy(false);
+    if(r.error)return err(r.error);
+    const m={};users.forEach(u=>m[u.email]=u.password);
+    setRes((r.data.results||[]).map(x=>({...x,password:m[x.email]})));reload();
+  };
+  return html`<div><div class="card"><b>Buat Akun Massal (maks. 50)</b>
+  <label>Satu baris per orang: nama, email, no_hp, password (kosongkan = otomatis)</label><textarea rows="5" value=${txt} onInput=${e=>setTxt(e.target.value)} placeholder="Ahmad Fauzi, ahmad@rpi.id, 0812xxxx"></textarea>
+  <div class="grid" style=${{gridTemplateColumns:'1fr 1fr'}}><div><label>Peran</label><select value=${role} onChange=${e=>setRole(e.target.value)}><option value="relawan">Relawan</option><option value="koordinator">Koordinator</option></select></div>
+  ${role==='relawan'&&html`<div><label>Koordinator</label><select value=${co} onChange=${e=>setCo(e.target.value)}><option value="">(belum ditempatkan)</option>${koors.map(k=>html`<option key=${k.id} value=${k.id}>${k.nama}</option>`)}</select></div>`}</div>
+  <div style=${{marginTop:12}}><button class="btn" disabled=${busy} onClick=${create}>${busy?'Membuat...':'Buat Akun'}</button></div>
+  ${res&&html`<div style=${{marginTop:12}}><b>Hasil</b> (simpan password ini, tidak ditampilkan lagi)<table><tbody>${res.map(x=>html`<tr key=${x.email}><td>${x.ok?'✓':'✗'}</td><td>${x.email}</td><td>${x.ok?x.password:x.error}</td></tr>`)}</tbody></table>
+  <button class="btn s o" style=${{marginTop:8}} onClick=${()=>navigator.clipboard&&navigator.clipboard.writeText(res.filter(x=>x.ok).map(x=>x.email+','+x.password).join('\n'))}>Salin email,password</button></div>`}</div>
+  <div class="card sc"><b>Daftar Pengguna</b><table><thead><tr><th>Nama</th><th>Peran</th><th>Koordinator</th><th>Aktif</th></tr></thead><tbody>
+  ${d.prof.filter(p=>p.role!=='owner').map(p=>html`<tr key=${p.id}><td>${p.nama}</td><td>${p.role}</td><td>${p.role==='relawan'?html`<select style=${{margin:0}} value=${p.koordinator_id||''} onChange=${e=>upd(p.id,{koordinator_id:e.target.value||null})}><option value="">-</option>${koors.map(k=>html`<option key=${k.id} value=${k.id}>${k.nama}</option>`)}</select>`:'-'}</td>
+  <td><button class=${'btn s '+(p.aktif?'g':'r')} onClick=${()=>upd(p.id,{aktif:!p.aktif})}>${p.aktif?'Aktif':'Nonaktif'}</button></td></tr>`)}</tbody></table></div></div>`;
+}
+
+function Coord({d}){
+  const rel=d.prof.filter(p=>p.role==='relawan');
+  const rows=rel.map(p=>{const l=d.k.filter(v=>v.relawan_id===p.id);return{n:p.nama,k:l.length,b:l.filter(v=>v.status==='Berhasil').length,dn:l.filter(isV).reduce((a,v)=>a+v.nominal,0),last:l.length?tgl(l[0]):'-'};});
+  return html`<div><${Stats} list=${d.k}/><div class="card sc"><b>Pergerakan Tim (${rel.length} relawan)</b><table><thead><tr><th>Relawan</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th><th>Terakhir</th></tr></thead><tbody>
+  ${rows.map(r=>html`<tr key=${r.n}><td>${r.n}</td><td>${r.k}</td><td>${r.b}</td><td>${Rp(r.dn)}</td><td>${r.last}</td></tr>`)}</tbody></table></div><b>Aktivitas Terbaru</b><${Tbl} list=${d.k.slice(0,20)}/></div>`;
+}
+
+function Main({me,out}){
+  const [d,setD]=useState({k:[],cat:[],rek:[],lem:null,don:[],prof:[]}),[tab,setTab]=useState(me.role==='owner'?'dash':me.role==='koordinator'?'mon':'home'),[rc,setRc]=useState(null),[ban,setBan]=useState(true),[inst,setInst]=useState(false);
+  const reload=useCallback(async()=>{
+    const [k,cat,rek,lem,don,prof]=await Promise.all([
+      sb.from('kunjungan').select('*,relawan:profiles!relawan_id(nama),kategori(nama)').order('created_at',{ascending:false}).limit(3000),
+      sb.from('kategori').select('*').order('id'),sb.from('rekening').select('*').order('id'),sb.from('lembaga').select('*').eq('id',1).maybeSingle(),
+      sb.from('donatur').select('*').order('nama'),sb.from('profiles').select('*').order('nama')]);
+    setD({k:k.data||[],cat:cat.data||[],rek:rek.data||[],lem:lem.data,don:don.data||[],prof:prof.data||[]});
+  },[]);
+  useEffect(()=>{reload();const ch=sb.channel('rt-kunjungan').on('postgres_changes',{event:'*',schema:'public',table:'kunjungan'},()=>reload()).subscribe();return()=>{sb.removeChannel(ch)};},[reload]);
+  useEffect(()=>{setInst(window.matchMedia('(display-mode: standalone)').matches||!!navigator.standalone);const h=e=>{e.preventDefault();window.__ip=e;};window.addEventListener('beforeinstallprompt',h);return()=>window.removeEventListener('beforeinstallprompt',h);},[]);
+  const mobile=/Android|iPhone|iPad/i.test(navigator.userAgent);
+  const nav=[['home','Home',P.home],['lapor','Lapor',P.plus],['riwayat','Riwayat',P.list],['akun','Akun',P.user]];
+  const tabs=me.role==='owner'?[['dash','Dashboard'],['ver','Verifikasi'],['mst','Master Data'],['tim','Relawan']]:[];
+  return html`<div>
+  <header class="top"><span class="logo">RPI <span style=${{fontWeight:400,fontSize:12,color:'var(--mut)'}}>${d.lem?d.lem.nama:''}</span></span><span style=${{display:'flex',alignItems:'center',gap:8}}><span style=${{fontSize:12}}>${me.nama} <span class="badge St">${me.role}</span></span><button class="btn s o" onClick=${out}>Keluar</button></span></header>
+  <div class="wrap">
+  ${!inst&&ban&&mobile&&html`<div class="card" style=${{background:'var(--orl)',marginTop:12}}><b>Install ke Layar Utama HP</b><div style=${{fontSize:12,color:'var(--mut)',margin:'4px 0 8px'}}>Buka menu browser (⋮ atau tombol Bagikan), lalu pilih “Tambahkan ke Layar Utama”.</div><button class="btn s" onClick=${()=>window.__ip&&window.__ip.prompt()}>Install</button> <button class="btn s o" onClick=${()=>setBan(false)}>Nanti</button></div>`}
+  ${me.role==='relawan'&&html`<div style=${{marginTop:12}}>
+    ${tab==='home'&&html`<div><div class="hero"><h2>Assalamu’alaikum, ${me.nama.split(' ')[0]}</h2><div>Setiap kunjungan adalah jembatan kebaikan.</div><button class="btn" style=${{background:'#fff',color:'#FF7A00',marginTop:12}} onClick=${()=>setTab('lapor')}>+ Lapor Kunjungan</button></div><${Stats} list=${d.k}/>
+      <div class="card"><b>Donatur Saya</b><div style=${{color:'var(--mut)'}}>${d.don.length} donatur tercatat</div></div></div>`}
+    ${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} done=${()=>setTab('riwayat')}/>`}
+    ${tab==='riwayat'&&html`<${Tbl} list=${d.k} rc=${setRc}/>`}
+    ${tab==='akun'&&html`<div class="card"><b>${me.nama}</b><div style=${{color:'var(--mut)'}}>Relawan RPI · ${me.no_hp||''}</div></div>`}</div>`}
+  ${me.role==='koordinator'&&html`<div style=${{marginTop:12}}><${Coord} d=${d}/></div>`}
+  ${me.role==='owner'&&html`<div><div class="chips">${tabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}<button onClick=${()=>exportCsv(d.k)}>Ekspor CSV</button></div>
+    ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}</div>`}
+  </div>
+  ${me.role==='relawan'&&html`<nav class="nav">${nav.map(([k,l,p])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}><${Ic} d=${p}/>${l}</button>`)}</nav>`}
+  ${rc&&html`<${Receipt} v=${rc} lem=${d.lem} onClose=${()=>setRc(null)}/>`}</div>`;
+}
+
+function App(){
+  const [sess,setSess]=useState(undefined),[me,setMe]=useState(undefined);
+  useEffect(()=>{if(!sb)return;sb.auth.getSession().then(({data})=>setSess(data.session));const {data}=sb.auth.onAuthStateChange((_e,s)=>setSess(s));return()=>data.subscription.unsubscribe();},[]);
+  useEffect(()=>{if(!sess){setMe(undefined);return;}sb.from('profiles').select('*').eq('id',sess.user.id).maybeSingle().then(({data})=>setMe(data||null));},[sess]);
+  const out=()=>sb.auth.signOut();
+  if(!sb)return html`<${Setup}/>`;
+  if(sess===undefined)return html`<div class="center">Memuat...</div>`;
+  if(!sess)return html`<${Login}/>`;
+  if(me===undefined)return html`<div class="center">Memuat profil...</div>`;
+  if(!me||!me.aktif)return html`<div class="center card"><b>Akun belum aktif</b><p>Profil belum dibuat atau akun dinonaktifkan. Hubungi Owner.</p><button class="btn o" onClick=${out}>Keluar</button></div>`;
+  return html`<${Main} me=${me} out=${out}/>`;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(html`<${App}/>`);
+</script>
+</body>
+</html>
