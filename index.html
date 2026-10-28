@@ -7,8 +7,6 @@
 <meta name="description" content="Platform resmi Rumah Pelopor Indonesia untuk manajemen relawan lapangan, pencatatan kunjungan donatur secara real-time, transparansi dana, dan pelaporan eksekutif terintegrasi.">
 <meta property="og:title" content="RPI - Sistem Laporan Kunjungan & Donasi Lapangan">
 <meta property="og:description" content="Platform resmi Rumah Pelopor Indonesia untuk manajemen relawan lapangan, pencatatan kunjungan donatur secara real-time, transparansi dana, dan pelaporan eksekutif terintegrasi.">
-<!-- GANTI dengan URL absolut logo RPI (https://domainmu/logo-rpi.png) agar preview WhatsApp muncul -->
-<meta property="og:image" content="https://GANTI-DOMAIN-KAMU/logo-rpi.png">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#FF7A00">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -72,7 +70,7 @@ const Ic=({d})=>html`<svg width="20" height="20" viewBox="0 0 24 24" fill="none"
 const P={home:'M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',plus:'M12 5v14M5 12h14',list:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',user:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8'};
 const METODE=['Cash','Transfer BNI','Transfer Mandiri','Transfer BSI','QRIS'];
 const STATUS=['Prospek','Berminat','Menolak','Berhasil'];
-const tgl=v=>(v.created_at||'').slice(0,10);
+const tgl=v=>v.created_at?new Date(new Date(v.created_at).getTime()+7*36e5).toISOString().slice(0,10):'';
 const isV=v=>v.verif_status==='Verified';
 const err=e=>alert(e&&e.message?e.message:String(e));
 
