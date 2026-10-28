@@ -7,18 +7,24 @@
 <meta name="description" content="Platform resmi Rumah Pelopor Indonesia untuk manajemen relawan lapangan, pencatatan kunjungan donatur secara real-time, transparansi dana, dan pelaporan eksekutif terintegrasi.">
 <meta property="og:title" content="RPI - Sistem Laporan Kunjungan & Donasi Lapangan">
 <meta property="og:description" content="Platform resmi Rumah Pelopor Indonesia untuk manajemen relawan lapangan, pencatatan kunjungan donatur secara real-time, transparansi dana, dan pelaporan eksekutif terintegrasi.">
+<meta property="og:image" content="https://rumahpeloporindonesia-mu.vercel.app/og-rpi.png">
+<meta property="og:url" content="https://rumahpeloporindonesia-mu.vercel.app/">
 <meta property="og:type" content="website">
-<meta name="theme-color" content="#FF7A00">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/rpi-192.png">
+<meta name="theme-color" content="#1d4ed8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
-:root{--bg:#f4f5f7;--card:#fff;--tx:#1f2937;--mut:#6b7280;--bd:#e5e7eb;--or:#FF7A00;--orl:#fff4e8}
-@media (prefers-color-scheme:dark){:root{--bg:#111317;--card:#1b1e24;--tx:#f3f4f6;--mut:#9ca3af;--bd:#2d323b;--orl:#2a1d10}}
+:root{color-scheme:light;--bg:#f3f6fc;--card:#fff;--tx:#0f172a;--mut:#64748b;--bd:#dbe4f3;--pr:#1d4ed8;--prl:#e8f0ff}
+:root[data-theme=dark]{color-scheme:dark;--bg:#0b1220;--card:#121b30;--tx:#e8eefb;--mut:#94a3c0;--bd:#223152;--pr:#3b82f6;--prl:#16233f}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#0b1220;--card:#121b30;--tx:#e8eefb;--mut:#94a3c0;--bd:#223152;--pr:#3b82f6;--prl:#16233f}}
 *{box-sizing:border-box}html,body{margin:0}
 body{background:var(--bg);color:var(--tx);font-family:Inter,system-ui,sans-serif;font-size:14px;padding-top:env(safe-area-inset-top,0)}
 .wrap{max-width:1000px;margin:0 auto;padding:0 14px 90px}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
-.btn{background:var(--or);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:14px}
-.btn:disabled{opacity:.5}.btn.o{background:transparent;color:var(--or);border:1px solid var(--or)}.btn.g{background:#16a34a}.btn.r{background:#dc2626}.btn.s{padding:6px 10px;font-size:12px}
+.btn{background:var(--pr);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:14px}
+.btn:disabled{opacity:.5}.btn.o{background:transparent;color:var(--pr);border:1px solid var(--pr)}.btn.g{background:#16a34a}.btn.r{background:#dc2626}.btn.s{padding:6px 10px;font-size:12px}
 input,select,textarea{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;margin-top:4px}
 label{font-size:12px;color:var(--mut);display:block;margin-top:10px}
 .grid{display:grid;gap:10px}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
@@ -26,17 +32,23 @@ label{font-size:12px;color:var(--mut);display:block;margin-top:10px}
 .Pending{background:#fef3c7;color:#92400e}.Verified{background:#dcfce7;color:#166534}.Rejected{background:#fee2e2;color:#991b1b}.St{background:#e0e7ff;color:#3730a3}
 .nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bd);display:flex;padding-bottom:env(safe-area-inset-bottom,0);z-index:20}
 .nav button{flex:1;background:none;border:0;padding:8px 0;color:var(--mut);font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
-.nav button.a{color:var(--or);border-top:2px solid var(--or)}
-.hero{background:linear-gradient(120deg,#ff9a3c,#FF7A00);color:#fff;border-radius:16px;padding:20px;margin-bottom:12px}.hero h2{margin:0 0 4px;font-size:22px}
+.nav button.a{color:var(--pr);border-top:2px solid var(--pr)}
+.hero{background:linear-gradient(120deg,#3b82f6,#1d4ed8);color:#fff;border-radius:16px;padding:20px;margin-bottom:12px}.hero h2{margin:0 0 4px;font-size:22px}
 table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}.sc{overflow-x:auto}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:14px;z-index:50}
 .modal>div{background:#fff;color:#111;border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:90vh;overflow:auto}
 header.top{position:sticky;top:0;z-index:15;background:var(--card);border-bottom:1px solid var(--bd);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.logo{font-weight:800;color:var(--or);font-size:18px}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.chips button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:6px 12px;cursor:pointer;font-size:12px}.chips button.a{background:var(--or);color:#fff;border-color:var(--or)}
+.logo{font-weight:800;color:var(--pr);font-size:18px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.chips button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:6px 12px;cursor:pointer;font-size:12px}.chips button.a{background:var(--pr);color:#fff;border-color:var(--pr)}
 .center{max-width:380px;margin:8vh auto;padding:0 14px}
+.recharts-cartesian-axis-tick-value,.recharts-pie-label-text{fill:var(--mut)}
+.recharts-cartesian-grid line{stroke:var(--bd)}
+.recharts-default-tooltip{background:var(--card)!important;border-color:var(--bd)!important}
+.recharts-tooltip-label,.recharts-tooltip-item{color:var(--tx)!important}
+.btn.s svg{display:block}
 @media print{body *{visibility:hidden}#kw,#kw *{visibility:visible}#kw{position:absolute;left:0;top:0;width:100%}}
 </style>
+<script>try{var t=localStorage.getItem('rpi_theme');if(t){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
 </head>
 <body>
 <div id="root"></div>
@@ -59,19 +71,27 @@ const ls=(k,v)=>{try{return v===undefined?localStorage.getItem(k):localStorage.s
 const CU=SUPABASE_URL||ls('rpi_u')||'', CK=SUPABASE_ANON_KEY||ls('rpi_k')||'';
 const sb=CU&&CK?supabase.createClient(CU,CK):null;
 
-// ===== PWA: manifest dinamis (single-file) =====
-(function(){try{const ic='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#FF7A00"/><text x="96" y="118" font-size="72" font-weight="800" text-anchor="middle" fill="#fff" font-family="Arial">RPI</text></svg>');
-const m={name:'RPI Donasi Lapangan',short_name:'RPI',start_url:location.href.split('#')[0],display:'standalone',background_color:'#ffffff',theme_color:'#FF7A00',icons:[{src:ic,sizes:'192x192 512x512',type:'image/svg+xml',purpose:'any'}]};
-const l=document.createElement('link');l.rel='manifest';l.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));document.head.appendChild(l);
-const a=document.createElement('link');a.rel='apple-touch-icon';a.href=ic;document.head.appendChild(a);}catch(e){}})();
+// ===== TEMA TERANG/GELAP (ikut sistem, bisa diganti manual dengan tombol) =====
+const curTheme=()=>document.documentElement.getAttribute('data-theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+const setMeta=t=>{const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='dark'?'#0b1220':'#1d4ed8';};
+const applyTheme=t=>{document.documentElement.setAttribute('data-theme',t);ls('rpi_theme',t);setMeta(t);};
+setMeta(curTheme());
 
 const Rp=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
 const Ic=({d})=>html`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d=${d}/></svg>`;
 const P={home:'M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',plus:'M12 5v14M5 12h14',list:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',user:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8'};
+P.sun='M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42';
+P.moon='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z';
+function ThemeBtn(){
+  const [t,setT]=useState(curTheme());
+  return html`<button class="btn s o" title=${t==='dark'?'Mode terang':'Mode gelap'} onClick=${()=>{const n=t==='dark'?'light':'dark';applyTheme(n);setT(n);}}><${Ic} d=${t==='dark'?P.sun:P.moon}/></button>`;
+}
 const METODE=['Cash','Transfer BNI','Transfer Mandiri','Transfer BSI','QRIS'];
 const STATUS=['Prospek','Berminat','Menolak','Berhasil'];
 const tgl=v=>v.created_at?new Date(new Date(v.created_at).getTime()+7*36e5).toISOString().slice(0,10):'';
 const isV=v=>v.verif_status==='Verified';
+const jam=v=>v.created_at?new Date(new Date(v.created_at).getTime()+7*36e5).toISOString().slice(11,16):'';
+const openBukti=async p=>{const r=await sb.storage.from('bukti').createSignedUrl(p,300);if(r.error)err(r.error);else window.open(r.data.signedUrl,'_blank');};
 const err=e=>alert(e&&e.message?e.message:String(e));
 
 function Setup(){
@@ -85,7 +105,7 @@ function Setup(){
 function Login(){
   const [e,setE]=useState(''),[p,setP]=useState(''),[b,setB]=useState(false);
   const go=async()=>{setB(true);const {error}=await sb.auth.signInWithPassword({email:e.trim(),password:p});setB(false);if(error)alert('Login gagal: '+error.message);};
-  return html`<div class="center card"><div class="logo" style=${{fontSize:28}}>RPI</div><div style=${{color:'var(--mut)'}}>Rumah Pelopor Indonesia · #jembatankebaikan</div>
+  return html`<div class="center card"><div style=${{textAlign:'right'}}><${ThemeBtn}/></div><div class="logo" style=${{fontSize:28}}>RPI</div><div style=${{color:'var(--mut)'}}>Rumah Pelopor Indonesia · #jembatankebaikan</div>
   <b style=${{display:'block',marginTop:16}}>Yuk masuk untuk mulai melapor</b>
   <label>Email</label><input type="email" value=${e} onInput=${x=>setE(x.target.value)}/>
   <label>Password</label><input type="password" value=${p} onInput=${x=>setP(x.target.value)} onKeyDown=${x=>x.key==='Enter'&&go()}/>
@@ -95,8 +115,8 @@ function Login(){
 
 function Receipt({v,lem,onClose}){
   return html`<div class="modal" onClick=${onClose}><div onClick=${e=>e.stopPropagation()}><div id="kw">
-    <div style=${{textAlign:'center',borderBottom:'2px solid #FF7A00',paddingBottom:8}}>
-      ${lem&&lem.logo_url?html`<img src=${lem.logo_url} style=${{height:48}}/>`:html`<div style=${{fontWeight:800,fontSize:22,color:'#FF7A00'}}>RPI</div>`}
+    <div style=${{textAlign:'center',borderBottom:'2px solid #1d4ed8',paddingBottom:8}}>
+      ${lem&&lem.logo_url?html`<img src=${lem.logo_url} style=${{height:48}}/>`:html`<div style=${{fontWeight:800,fontSize:22,color:'#1d4ed8'}}>RPI</div>`}
       <div style=${{fontSize:12}}>${lem?lem.nama:'Rumah Pelopor Indonesia'}</div><b>KUITANSI DIGITAL</b></div>
     <table><tbody>${[['No.',v.no_kuitansi],['Tanggal',tgl(v)],['Donatur',v.donatur_nama],['Kategori',v.kategori&&v.kategori.nama],['Metode',v.metode],['Relawan',v.relawan&&v.relawan.nama]].map(([a,b])=>html`<tr key=${a}><td>${a}</td><td><b>${b}</b></td></tr>`)}</tbody></table>
     <div style=${{textAlign:'center',fontSize:22,fontWeight:800,margin:'14px 0'}}>${Rp(v.nominal)}</div>
@@ -106,7 +126,7 @@ function Receipt({v,lem,onClose}){
 
 function Stats({list}){
   const it=[['Kunjungan',list.length],['Berhasil',list.filter(v=>v.status==='Berhasil').length],['Dana Terverifikasi',Rp(list.filter(isV).reduce((a,v)=>a+v.nominal,0))],['Menunggu Verifikasi',list.filter(v=>v.verif_status==='Pending').length]];
-  return html`<div class="grid g4" style=${{marginBottom:12}}>${it.map(([a,b])=>html`<div class="card" style=${{marginBottom:0}} key=${a}><div style=${{color:'var(--mut)',fontSize:12}}>${a}</div><div style=${{fontSize:18,fontWeight:800,color:'var(--or)'}}>${b}</div></div>`)}</div>`;
+  return html`<div class="grid g4" style=${{marginBottom:12}}>${it.map(([a,b])=>html`<div class="card" style=${{marginBottom:0}} key=${a}><div style=${{color:'var(--mut)',fontSize:12}}>${a}</div><div style=${{fontSize:18,fontWeight:800,color:'var(--pr)'}}>${b}</div></div>`)}</div>`;
 }
 
 function Tbl({list,act,rc}){
@@ -148,10 +168,10 @@ function Form({me,d,reload,done}){
   <div style=${{marginTop:14}}><button class="btn" style=${{width:'100%'}} disabled=${busy} onClick=${save}>${busy?'Menyimpan...':'Kirim Laporan'}</button></div></div>`;
 }
 
-const COL=['#FF7A00','#3b82f6','#16a34a','#a855f7','#ef4444'];
+const COL=['#2563eb','#0ea5e9','#16a34a','#a855f7','#ef4444'];
 const csvCell=x=>'"'+String(x==null?'':x).replace(/"/g,'""')+'"';
 function exportCsv(list){
-  const rows=[['Tanggal','No Kuitansi','Relawan','Donatur','Status','Nominal','Kategori','Metode','Verifikasi'],...list.map(v=>[tgl(v),v.no_kuitansi,v.relawan&&v.relawan.nama,v.donatur_nama,v.status,v.nominal,v.kategori&&v.kategori.nama,v.metode,v.verif_status])];
+  const rows=[['Tanggal','Jam (WIB)','No Kuitansi','Relawan','Donatur','Status','Nominal','Kategori','Metode','Verifikasi','Catatan'],...list.map(v=>[tgl(v),jam(v),v.no_kuitansi,v.relawan&&v.relawan.nama,v.donatur_nama,v.status,v.nominal,v.kategori&&v.kategori.nama,v.metode,v.verif_status,v.catatan])];
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.map(csvCell).join(',')).join('\n')],{type:'text/csv'}));a.download='rpi-donasi-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 }
 
@@ -163,8 +183,8 @@ function Dash({d}){
   const byM=METODE.map(m=>({n:m,v:sum(ver.filter(x=>x.metode===m))})).filter(x=>x.v>0);
   const ax=v=>v>=1e6?(v/1e6)+'jt':v;
   return html`<div><${Stats} list=${d.k}/>
-  <div class="card"><b>Dana per Kategori</b><div style=${{height:220}}><${ResponsiveContainer}><${BarChart} data=${byCat}><${CartesianGrid} strokeDasharray="3 3"/><${XAxis} dataKey="n" fontSize=${11}/><${YAxis} fontSize=${11} tickFormatter=${ax}/><${Tooltip} formatter=${Rp}/><${Bar} dataKey="v" fill="#FF7A00" radius=${[6,6,0,0]}/><//><//></div></div>
-  <div class="card"><b>Tren Harian (30 hari terakhir)</b><div style=${{height:220}}><${ResponsiveContainer}><${LineChart} data=${trend}><${CartesianGrid} strokeDasharray="3 3"/><${XAxis} dataKey="n" fontSize=${11}/><${YAxis} fontSize=${11} tickFormatter=${ax}/><${Tooltip} formatter=${Rp}/><${Line} dataKey="v" stroke="#3b82f6" strokeWidth=${2} dot=${false}/><//><//></div></div>
+  <div class="card"><b>Dana per Kategori</b><div style=${{height:220}}><${ResponsiveContainer}><${BarChart} data=${byCat}><${CartesianGrid} strokeDasharray="3 3"/><${XAxis} dataKey="n" fontSize=${11}/><${YAxis} fontSize=${11} tickFormatter=${ax}/><${Tooltip} formatter=${Rp}/><${Bar} dataKey="v" fill="#2563eb" radius=${[6,6,0,0]}/><//><//></div></div>
+  <div class="card"><b>Tren Harian (30 hari terakhir)</b><div style=${{height:220}}><${ResponsiveContainer}><${LineChart} data=${trend}><${CartesianGrid} strokeDasharray="3 3"/><${XAxis} dataKey="n" fontSize=${11}/><${YAxis} fontSize=${11} tickFormatter=${ax}/><${Tooltip} formatter=${Rp}/><${Line} dataKey="v" stroke="#0ea5e9" strokeWidth=${2} dot=${false}/><//><//></div></div>
   <div class="card"><b>Metode Pembayaran</b><div style=${{height:240}}><${ResponsiveContainer}><${PieChart}><${Pie} data=${byM} dataKey="v" nameKey="n" innerRadius=${55} outerRadius=${85} label=${e=>e.n}>${byM.map((_,i)=>html`<${Cell} key=${i} fill=${COL[i%5]}/>`)}<//><${Tooltip} formatter=${Rp}/><//><//></div></div></div>`;
 }
 
@@ -174,6 +194,38 @@ function Verif({d,reload}){
   const list=d.k.filter(v=>v.status==='Berhasil').sort((a,b)=>(a.verif_status==='Pending'?0:1)-(b.verif_status==='Pending'?0:1));
   return html`<${Tbl} list=${list} act=${v=>html`<span style=${{display:'flex',gap:4}}>${v.bukti_path&&html`<button class="btn s o" onClick=${()=>bukti(v.bukti_path)}>Bukti</button>`}
   ${v.verif_status==='Pending'&&html`<button class="btn s g" onClick=${()=>set(v.id,'Verified')}>Approve</button><button class="btn s r" onClick=${()=>set(v.id,'Rejected')}>Reject</button>`}</span>`}/>`;
+}
+
+function Detail({v,d,reload,onClose}){
+  const don=d.don.find(x=>x.id===v.donatur_id),vb=d.prof.find(p=>p.id===v.verif_by);
+  const set=async s=>{const r=await sb.from('kunjungan').update({verif_status:s}).eq('id',v.id);if(r.error)err(r.error);else{reload();onClose();}};
+  const wk=t=>t?tgl({created_at:t})+' '+jam({created_at:t})+' WIB':null;
+  const rows=[['Waktu lapor',wk(v.created_at)],['Relawan',v.relawan&&v.relawan.nama],['Donatur',v.donatur_nama],['No. HP donatur',don&&don.no_hp],['Alamat donatur',don&&don.alamat],['Status kunjungan',v.status],['Catatan',v.catatan],['Nominal',v.nominal?Rp(v.nominal):null],['Kategori',v.kategori&&v.kategori.nama],['Metode',v.metode],['Verifikasi',v.verif_status],['Diverifikasi oleh',vb&&vb.nama],['Waktu verifikasi',wk(v.verif_at)],['No. kuitansi',v.no_kuitansi]].filter(r=>r[1]);
+  return html`<div class="modal" onClick=${onClose}><div style=${{background:'var(--card)',color:'var(--tx)'}} onClick=${e=>e.stopPropagation()}><b style=${{fontSize:16}}>Detail Kunjungan</b>
+  <table><tbody>${rows.map(([a,b])=>html`<tr key=${a}><td style=${{color:'var(--mut)',verticalAlign:'top'}}>${a}</td><td style=${{whiteSpace:'normal'}}><b>${b}</b></td></tr>`)}</tbody></table>
+  <div style=${{display:'flex',gap:8,marginTop:14,flexWrap:'wrap'}}>${v.bukti_path&&html`<button class="btn s o" onClick=${()=>openBukti(v.bukti_path)}>Lihat Bukti</button>`}
+  ${v.verif_status==='Pending'&&html`<button class="btn s g" onClick=${()=>set('Verified')}>Approve</button><button class="btn s r" onClick=${()=>set('Rejected')}>Reject</button>`}
+  <button class="btn s o" onClick=${onClose}>Tutup</button></div></div></div>`;
+}
+
+function Kun({d,reload}){
+  const [q,setQ]=useState(''),[st,setSt]=useState(''),[rw,setRw]=useState(''),[dr,setDr]=useState(''),[sp,setSp]=useState(''),[sel,setSel]=useState(null),[n,setN]=useState(100);
+  const rel=d.prof.filter(p=>p.role==='relawan');
+  const ql=q.trim().toLowerCase();
+  const list=d.k.filter(v=>(!st||v.status===st)&&(!rw||v.relawan_id===rw)&&(!dr||tgl(v)>=dr)&&(!sp||tgl(v)<=sp)&&(!ql||(v.donatur_nama||'').toLowerCase().includes(ql)||((v.relawan&&v.relawan.nama)||'').toLowerCase().includes(ql)||(v.catatan||'').toLowerCase().includes(ql)));
+  const cnt=s=>d.k.filter(v=>v.status===s).length;
+  const reset=()=>{setQ('');setSt('');setRw('');setDr('');setSp('');setN(100);};
+  return html`<div><div class="card"><b>Semua Kunjungan</b> <span style=${{color:'var(--mut)',fontSize:12}}>${list.length} dari ${d.k.length} data</span>
+  <div class="chips">${[['','Semua ('+d.k.length+')'],...STATUS.map(s=>[s,s+' ('+cnt(s)+')'])].map(([k,l])=>html`<button key=${k} class=${st===k?'a':''} onClick=${()=>{setSt(k);setN(100);}}>${l}</button>`)}</div>
+  <input placeholder="Cari donatur, relawan, atau catatan" value=${q} onInput=${e=>{setQ(e.target.value);setN(100);}}/>
+  <div class="grid" style=${{gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))'}}>
+    <div><label>Relawan</label><select value=${rw} onChange=${e=>{setRw(e.target.value);setN(100);}}><option value="">Semua relawan</option>${rel.map(p=>html`<option key=${p.id} value=${p.id}>${p.nama}</option>`)}</select></div>
+    <div><label>Dari tanggal</label><input type="date" value=${dr} onInput=${e=>{setDr(e.target.value);setN(100);}}/></div>
+    <div><label>Sampai tanggal</label><input type="date" value=${sp} onInput=${e=>{setSp(e.target.value);setN(100);}}/></div></div>
+  <div style=${{display:'flex',gap:8,marginTop:10,flexWrap:'wrap'}}><button class="btn s o" onClick=${()=>exportCsv(list)}>Ekspor CSV (hasil filter)</button><button class="btn s o" onClick=${reset}>Reset filter</button></div></div>
+  <${Tbl} list=${list.slice(0,n)} act=${v=>html`<button class="btn s o" onClick=${()=>setSel(v)}>Detail</button>`}/>
+  ${list.length>n&&html`<div style=${{textAlign:'center',marginBottom:12}}><button class="btn o" onClick=${()=>setN(n+100)}>Tampilkan lebih banyak</button></div>`}
+  ${sel&&html`<${Detail} v=${sel} d=${d} reload=${reload} onClose=${()=>setSel(null)}/>`}</div>`;
 }
 
 function Master({d,reload}){
@@ -238,20 +290,20 @@ function Main({me,out}){
   useEffect(()=>{setInst(window.matchMedia('(display-mode: standalone)').matches||!!navigator.standalone);const h=e=>{e.preventDefault();window.__ip=e;};window.addEventListener('beforeinstallprompt',h);return()=>window.removeEventListener('beforeinstallprompt',h);},[]);
   const mobile=/Android|iPhone|iPad/i.test(navigator.userAgent);
   const nav=[['home','Home',P.home],['lapor','Lapor',P.plus],['riwayat','Riwayat',P.list],['akun','Akun',P.user]];
-  const tabs=me.role==='owner'?[['dash','Dashboard'],['ver','Verifikasi'],['mst','Master Data'],['tim','Relawan']]:[];
+  const tabs=me.role==='owner'?[['dash','Dashboard'],['kun','Kunjungan'],['ver','Verifikasi'],['mst','Master Data'],['tim','Relawan']]:[];
   return html`<div>
-  <header class="top"><span class="logo">RPI <span style=${{fontWeight:400,fontSize:12,color:'var(--mut)'}}>${d.lem?d.lem.nama:''}</span></span><span style=${{display:'flex',alignItems:'center',gap:8}}><span style=${{fontSize:12}}>${me.nama} <span class="badge St">${me.role}</span></span><button class="btn s o" onClick=${out}>Keluar</button></span></header>
+  <header class="top"><span class="logo">RPI <span style=${{fontWeight:400,fontSize:12,color:'var(--mut)'}}>${d.lem?d.lem.nama:''}</span></span><span style=${{display:'flex',alignItems:'center',gap:8}}><span style=${{fontSize:12}}>${me.nama} <span class="badge St">${me.role}</span></span><${ThemeBtn}/><button class="btn s o" onClick=${out}>Keluar</button></span></header>
   <div class="wrap">
-  ${!inst&&ban&&mobile&&html`<div class="card" style=${{background:'var(--orl)',marginTop:12}}><b>Install ke Layar Utama HP</b><div style=${{fontSize:12,color:'var(--mut)',margin:'4px 0 8px'}}>Buka menu browser (⋮ atau tombol Bagikan), lalu pilih “Tambahkan ke Layar Utama”.</div><button class="btn s" onClick=${()=>window.__ip&&window.__ip.prompt()}>Install</button> <button class="btn s o" onClick=${()=>setBan(false)}>Nanti</button></div>`}
+  ${!inst&&ban&&mobile&&html`<div class="card" style=${{background:'var(--prl)',marginTop:12}}><b>Install ke Layar Utama HP</b><div style=${{fontSize:12,color:'var(--mut)',margin:'4px 0 8px'}}>Buka menu browser (⋮ atau tombol Bagikan), lalu pilih “Tambahkan ke Layar Utama”.</div><button class="btn s" onClick=${()=>window.__ip&&window.__ip.prompt()}>Install</button> <button class="btn s o" onClick=${()=>setBan(false)}>Nanti</button></div>`}
   ${me.role==='relawan'&&html`<div style=${{marginTop:12}}>
-    ${tab==='home'&&html`<div><div class="hero"><h2>Assalamu’alaikum, ${me.nama.split(' ')[0]}</h2><div>Setiap kunjungan adalah jembatan kebaikan.</div><button class="btn" style=${{background:'#fff',color:'#FF7A00',marginTop:12}} onClick=${()=>setTab('lapor')}>+ Lapor Kunjungan</button></div><${Stats} list=${d.k}/>
+    ${tab==='home'&&html`<div><div class="hero"><h2>Assalamu’alaikum, ${me.nama.split(' ')[0]}</h2><div>Setiap kunjungan adalah jembatan kebaikan.</div><button class="btn" style=${{background:'#fff',color:'#1d4ed8',marginTop:12}} onClick=${()=>setTab('lapor')}>+ Lapor Kunjungan</button></div><${Stats} list=${d.k}/>
       <div class="card"><b>Donatur Saya</b><div style=${{color:'var(--mut)'}}>${d.don.length} donatur tercatat</div></div></div>`}
     ${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} done=${()=>setTab('riwayat')}/>`}
     ${tab==='riwayat'&&html`<${Tbl} list=${d.k} rc=${setRc}/>`}
     ${tab==='akun'&&html`<div class="card"><b>${me.nama}</b><div style=${{color:'var(--mut)'}}>Relawan RPI · ${me.no_hp||''}</div></div>`}</div>`}
   ${me.role==='koordinator'&&html`<div style=${{marginTop:12}}><${Coord} d=${d}/></div>`}
   ${me.role==='owner'&&html`<div><div class="chips">${tabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}<button onClick=${()=>exportCsv(d.k)}>Ekspor CSV</button></div>
-    ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}</div>`}
+    ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='kun'&&html`<${Kun} d=${d} reload=${reload}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}</div>`}
   </div>
   ${me.role==='relawan'&&html`<nav class="nav">${nav.map(([k,l,p])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}><${Ic} d=${p}/>${l}</button>`)}</nav>`}
   ${rc&&html`<${Receipt} v=${rc} lem=${d.lem} onClose=${()=>setRc(null)}/>`}</div>`;
