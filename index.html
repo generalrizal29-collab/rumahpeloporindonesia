@@ -93,6 +93,24 @@ const isV=v=>v.verif_status==='Verified';
 const jam=v=>v.created_at?new Date(new Date(v.created_at).getTime()+7*36e5).toISOString().slice(11,16):'';
 const openBukti=async p=>{const r=await sb.storage.from('bukti').createSignedUrl(p,300);if(r.error)err(r.error);else window.open(r.data.signedUrl,'_blank');};
 const err=e=>alert(e&&e.message?e.message:String(e));
+// pesan error asli dari Edge Function (functions.invoke hanya memberi pesan generik untuk non-2xx)
+const fnMsg=async e=>{try{const j=await e.context.json();return j.error||e.message;}catch(_){return e&&e.message?e.message:String(e);}};
+// kompres gambar di browser: maks 1280px, JPEG q0.72 (~150-300 KB). Tanpa fallback ke file asli.
+const compressImg=(file,maxW=1280,q=0.72)=>new Promise((res,rej)=>{
+  if(!/^image\//.test(file.type))return rej(new Error('File harus berupa gambar'));
+  if(file.size>25*1024*1024)return rej(new Error('Ukuran gambar terlalu besar (maks. 25 MB)'));
+  const img=new Image(),url=URL.createObjectURL(file);
+  img.onload=()=>{
+    const s=Math.min(1,maxW/Math.max(img.width,img.height));
+    const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*s));c.height=Math.max(1,Math.round(img.height*s));
+    const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);
+    URL.revokeObjectURL(url);
+    c.toBlob(b=>b?res(b):rej(new Error('Gagal mengompres gambar')),'image/jpeg',q);
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('Gambar tidak bisa dibaca. Coba screenshot ulang bukti transfer.'));};
+  img.src=url;
+});
+const KQ=()=>sb.from('kunjungan').select('*,relawan:profiles!relawan_id(nama),kategori(nama)').order('created_at',{ascending:false}).limit(3000);
 
 function Setup(){
   const [u,setU]=useState(''),[k,setK]=useState('');
@@ -148,7 +166,7 @@ function Form({me,d,reload,done}){
     try{
       if(!did){const r=await sb.from('donatur').insert({nama,no_hp:f.hp||null}).select().single();if(r.error)throw r.error;did=r.data.id;}
       let path=null;
-      if(ok&&f.file){path=me.id+'/'+Date.now()+'_'+f.file.name.replace(/[^\w.]/g,'_');const r=await sb.storage.from('bukti').upload(path,f.file);if(r.error)throw r.error;}
+      if(ok&&f.metode!=='Cash'&&f.file){const blob=await compressImg(f.file);path=me.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,6)+'.jpg';const r=await sb.storage.from('bukti').upload(path,blob,{contentType:'image/jpeg'});if(r.error)throw r.error;}
       const r=await sb.from('kunjungan').insert({donatur_id:did,donatur_nama:nama,status:f.status,catatan:f.cat||null,nominal:ok?+f.nominal:0,kategori_id:ok?+f.kat:null,metode:ok?f.metode:null,bukti_path:ok?path:null});
       if(r.error)throw r.error;
       setF(init);reload();done();
@@ -169,7 +187,7 @@ function Form({me,d,reload,done}){
 }
 
 const COL=['#2563eb','#0ea5e9','#16a34a','#a855f7','#ef4444'];
-const csvCell=x=>'"'+String(x==null?'':x).replace(/"/g,'""')+'"';
+const csvCell=x=>{let t=String(x==null?'':x);if(/^[=+\-@\t\r]/.test(t))t="'"+t;return '"'+t.replace(/"/g,'""')+'"';};
 function exportCsv(list){
   const rows=[['Tanggal','Jam (WIB)','No Kuitansi','Relawan','Donatur','Status','Nominal','Kategori','Metode','Verifikasi','Catatan'],...list.map(v=>[tgl(v),jam(v),v.no_kuitansi,v.relawan&&v.relawan.nama,v.donatur_nama,v.status,v.nominal,v.kategori&&v.kategori.nama,v.metode,v.verif_status,v.catatan])];
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.map(csvCell).join(',')).join('\n')],{type:'text/csv'}));a.download='rpi-donasi-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
@@ -189,16 +207,16 @@ function Dash({d}){
 }
 
 function Verif({d,reload}){
-  const set=async(id,s)=>{const r=await sb.from('kunjungan').update({verif_status:s}).eq('id',id);if(r.error)err(r.error);else reload();};
+  const set=async(v,s)=>{if(s==='Verified'&&!confirm('Approve '+Rp(v.nominal)+' dari '+v.donatur_nama+'?\n\nSetelah Verified, data bersifat final dan tidak bisa diubah.'))return;const r=await sb.from('kunjungan').update({verif_status:s}).eq('id',v.id);if(r.error)err(r.error);else reload();};
   const bukti=async p=>{const r=await sb.storage.from('bukti').createSignedUrl(p,300);if(r.error)err(r.error);else window.open(r.data.signedUrl,'_blank');};
   const list=d.k.filter(v=>v.status==='Berhasil').sort((a,b)=>(a.verif_status==='Pending'?0:1)-(b.verif_status==='Pending'?0:1));
   return html`<${Tbl} list=${list} act=${v=>html`<span style=${{display:'flex',gap:4}}>${v.bukti_path&&html`<button class="btn s o" onClick=${()=>bukti(v.bukti_path)}>Bukti</button>`}
-  ${v.verif_status==='Pending'&&html`<button class="btn s g" onClick=${()=>set(v.id,'Verified')}>Approve</button><button class="btn s r" onClick=${()=>set(v.id,'Rejected')}>Reject</button>`}</span>`}/>`;
+  ${v.verif_status==='Pending'&&html`<button class="btn s g" onClick=${()=>set(v,'Verified')}>Approve</button><button class="btn s r" onClick=${()=>set(v,'Rejected')}>Reject</button>`}</span>`}/>`;
 }
 
 function Detail({v,d,reload,onClose}){
   const don=d.don.find(x=>x.id===v.donatur_id),vb=d.prof.find(p=>p.id===v.verif_by);
-  const set=async s=>{const r=await sb.from('kunjungan').update({verif_status:s}).eq('id',v.id);if(r.error)err(r.error);else{reload();onClose();}};
+  const set=async s=>{if(s==='Verified'&&!confirm('Approve '+Rp(v.nominal)+' dari '+v.donatur_nama+'?\n\nSetelah Verified, data bersifat final dan tidak bisa diubah.'))return;const r=await sb.from('kunjungan').update({verif_status:s}).eq('id',v.id);if(r.error)err(r.error);else{reload();onClose();}};
   const wk=t=>t?tgl({created_at:t})+' '+jam({created_at:t})+' WIB':null;
   const rows=[['Waktu lapor',wk(v.created_at)],['Relawan',v.relawan&&v.relawan.nama],['Donatur',v.donatur_nama],['No. HP donatur',don&&don.no_hp],['Alamat donatur',don&&don.alamat],['Status kunjungan',v.status],['Catatan',v.catatan],['Nominal',v.nominal?Rp(v.nominal):null],['Kategori',v.kategori&&v.kategori.nama],['Metode',v.metode],['Verifikasi',v.verif_status],['Diverifikasi oleh',vb&&vb.nama],['Waktu verifikasi',wk(v.verif_at)],['No. kuitansi',v.no_kuitansi]].filter(r=>r[1]);
   return html`<div class="modal" onClick=${onClose}><div style=${{background:'var(--card)',color:'var(--tx)'}} onClick=${e=>e.stopPropagation()}><b style=${{fontSize:16}}>Detail Kunjungan</b>
@@ -245,29 +263,40 @@ function Master({d,reload}){
 }
 
 function Team({d,reload}){
-  const [txt,setTxt]=useState(''),[role,setRole]=useState('relawan'),[co,setCo]=useState(''),[res,setRes]=useState(null),[busy,setBusy]=useState(false);
+  const [txt,setTxt]=useState(''),[role,setRole]=useState('relawan'),[co,setCo]=useState(''),[res,setRes]=useState(null),[busy,setBusy]=useState(false),[rp,setRp]=useState(null);
   const koors=d.prof.filter(p=>p.role==='koordinator');
   const upd=async(id,patch)=>{const r=await sb.from('profiles').update(patch).eq('id',id);if(r.error)err(r.error);else reload();};
-  const rnd=()=>'RPI-'+Math.random().toString(36).slice(2,8);
   const create=async()=>{
-    const users=txt.split('\n').map(l=>l.split(',').map(s=>s.trim())).filter(a=>a[0]&&a[1]).map(a=>({nama:a[0],email:a[1],no_hp:a[2]||'',password:a[3]||rnd(),role,koordinator_id:role==='relawan'?(co||null):null}));
+    const users=txt.split('\n').map(l=>l.split(',').map(s=>s.trim())).filter(a=>a[0]&&a[1]).map(a=>({nama:a[0],email:a[1],no_hp:a[2]||'',password:a[3]||'',role,koordinator_id:role==='relawan'?(co||null):null}));
     if(!users.length)return alert('Format tiap baris: nama, email, no_hp, password(opsional)');
     if(users.length>50)return alert('Maksimal 50 akun sekali buat');
+    if(users.some(u=>u.password&&u.password.length<8))return alert('Password manual minimal 8 karakter (atau kosongkan agar dibuat otomatis)');
     setBusy(true);const r=await sb.functions.invoke('admin-create-users',{body:{users}});setBusy(false);
-    if(r.error)return err(r.error);
-    const m={};users.forEach(u=>m[u.email]=u.password);
-    setRes((r.data.results||[]).map(x=>({...x,password:m[x.email]})));reload();
+    if(r.error)return alert(await fnMsg(r.error));
+    setRes(r.data.results||[]);reload();
+  };
+  const setActive=async p=>{
+    if(!confirm((p.aktif?'Nonaktifkan ':'Aktifkan ')+p.nama+'?'))return;
+    const r=await sb.functions.invoke('admin-manage-user',{body:{action:'set_active',user_id:p.id,aktif:!p.aktif}});
+    if(r.error)alert(await fnMsg(r.error));reload();
+  };
+  const resetPw=async p=>{
+    if(!confirm('Reset password '+p.nama+'? Password lama langsung tidak berlaku.'))return;
+    const r=await sb.functions.invoke('admin-manage-user',{body:{action:'reset_password',user_id:p.id}});
+    if(r.error)return alert(await fnMsg(r.error));
+    setRp({nama:r.data.nama,password:r.data.password});
   };
   return html`<div><div class="card"><b>Buat Akun Massal (maks. 50)</b>
-  <label>Satu baris per orang: nama, email, no_hp, password (kosongkan = otomatis)</label><textarea rows="5" value=${txt} onInput=${e=>setTxt(e.target.value)} placeholder="Ahmad Fauzi, ahmad@rpi.id, 0812xxxx"></textarea>
+  <label>Satu baris per orang: nama, email, no_hp, password (opsional, min. 8 karakter; kosong = dibuat otomatis)</label><textarea rows="5" value=${txt} onInput=${e=>setTxt(e.target.value)} placeholder="Ahmad Fauzi, ahmad@rpi.id, 0812xxxx"></textarea>
   <div class="grid" style=${{gridTemplateColumns:'1fr 1fr'}}><div><label>Peran</label><select value=${role} onChange=${e=>setRole(e.target.value)}><option value="relawan">Relawan</option><option value="koordinator">Koordinator</option></select></div>
   ${role==='relawan'&&html`<div><label>Koordinator</label><select value=${co} onChange=${e=>setCo(e.target.value)}><option value="">(belum ditempatkan)</option>${koors.map(k=>html`<option key=${k.id} value=${k.id}>${k.nama}</option>`)}</select></div>`}</div>
   <div style=${{marginTop:12}}><button class="btn" disabled=${busy} onClick=${create}>${busy?'Membuat...':'Buat Akun'}</button></div>
   ${res&&html`<div style=${{marginTop:12}}><b>Hasil</b> (simpan password ini, tidak ditampilkan lagi)<table><tbody>${res.map(x=>html`<tr key=${x.email}><td>${x.ok?'✓':'✗'}</td><td>${x.email}</td><td>${x.ok?x.password:x.error}</td></tr>`)}</tbody></table>
   <button class="btn s o" style=${{marginTop:8}} onClick=${()=>navigator.clipboard&&navigator.clipboard.writeText(res.filter(x=>x.ok).map(x=>x.email+','+x.password).join('\n'))}>Salin email,password</button></div>`}</div>
-  <div class="card sc"><b>Daftar Pengguna</b><table><thead><tr><th>Nama</th><th>Peran</th><th>Koordinator</th><th>Aktif</th></tr></thead><tbody>
+  ${rp&&html`<div class="card"><b>Password baru untuk ${rp.nama}</b> (tampil sekali, simpan sekarang)<div style=${{fontSize:20,fontWeight:800,margin:'8px 0',userSelect:'all'}}>${rp.password}</div><button class="btn s o" onClick=${()=>navigator.clipboard&&navigator.clipboard.writeText(rp.password)}>Salin</button> <button class="btn s o" onClick=${()=>setRp(null)}>Tutup</button></div>`}
+  <div class="card sc"><b>Daftar Pengguna</b><table><thead><tr><th>Nama</th><th>Peran</th><th>Koordinator</th><th>Aktif</th><th></th></tr></thead><tbody>
   ${d.prof.filter(p=>p.role!=='owner').map(p=>html`<tr key=${p.id}><td>${p.nama}</td><td>${p.role}</td><td>${p.role==='relawan'?html`<select style=${{margin:0}} value=${p.koordinator_id||''} onChange=${e=>upd(p.id,{koordinator_id:e.target.value||null})}><option value="">-</option>${koors.map(k=>html`<option key=${k.id} value=${k.id}>${k.nama}</option>`)}</select>`:'-'}</td>
-  <td><button class=${'btn s '+(p.aktif?'g':'r')} onClick=${()=>upd(p.id,{aktif:!p.aktif})}>${p.aktif?'Aktif':'Nonaktif'}</button></td></tr>`)}</tbody></table></div></div>`;
+  <td><button class=${'btn s '+(p.aktif?'g':'r')} onClick=${()=>setActive(p)}>${p.aktif?'Aktif':'Nonaktif'}</button></td><td><button class="btn s o" onClick=${()=>resetPw(p)}>Reset PW</button></td></tr>`)}</tbody></table></div></div>`;
 }
 
 function Coord({d}){
@@ -281,12 +310,18 @@ function Main({me,out}){
   const [d,setD]=useState({k:[],cat:[],rek:[],lem:null,don:[],prof:[]}),[tab,setTab]=useState(me.role==='owner'?'dash':me.role==='koordinator'?'mon':'home'),[rc,setRc]=useState(null),[ban,setBan]=useState(true),[inst,setInst]=useState(false);
   const reload=useCallback(async()=>{
     const [k,cat,rek,lem,don,prof]=await Promise.all([
-      sb.from('kunjungan').select('*,relawan:profiles!relawan_id(nama),kategori(nama)').order('created_at',{ascending:false}).limit(3000),
+      KQ(),
       sb.from('kategori').select('*').order('id'),sb.from('rekening').select('*').order('id'),sb.from('lembaga').select('*').eq('id',1).maybeSingle(),
       sb.from('donatur').select('*').order('nama'),sb.from('profiles').select('*').order('nama')]);
     setD({k:k.data||[],cat:cat.data||[],rek:rek.data||[],lem:lem.data,don:don.data||[],prof:prof.data||[]});
   },[]);
-  useEffect(()=>{reload();const ch=sb.channel('rt-kunjungan').on('postgres_changes',{event:'*',schema:'public',table:'kunjungan'},()=>reload()).subscribe();return()=>{sb.removeChannel(ch)};},[reload]);
+  useEffect(()=>{
+    reload();
+    if(me.role==='relawan')return; // relawan tidak butuh realtime (hemat koneksi & egress free tier)
+    let t=null;
+    const ch=sb.channel('rt-kunjungan').on('postgres_changes',{event:'*',schema:'public',table:'kunjungan'},()=>{clearTimeout(t);t=setTimeout(async()=>{const k=await KQ();if(!k.error)setD(s=>({...s,k:k.data||[]}));},4000);}).subscribe();
+    return()=>{clearTimeout(t);sb.removeChannel(ch)};
+  },[reload,me.role]);
   useEffect(()=>{setInst(window.matchMedia('(display-mode: standalone)').matches||!!navigator.standalone);const h=e=>{e.preventDefault();window.__ip=e;};window.addEventListener('beforeinstallprompt',h);return()=>window.removeEventListener('beforeinstallprompt',h);},[]);
   const mobile=/Android|iPhone|iPad/i.test(navigator.userAgent);
   const nav=[['home','Home',P.home],['lapor','Lapor',P.plus],['riwayat','Riwayat',P.list],['akun','Akun',P.user]];
