@@ -306,6 +306,83 @@ function Coord({d}){
   ${rows.map(r=>html`<tr key=${r.n}><td>${r.n}</td><td>${r.k}</td><td>${r.b}</td><td>${Rp(r.dn)}</td><td>${r.last}</td></tr>`)}</tbody></table></div><b>Aktivitas Terbaru</b><${Tbl} list=${d.k.slice(0,20)}/></div>`;
 }
 
+// ===== REKAP TIM (owner): rekap per koordinator + tracking relawan sudah/belum bergerak =====
+// Data dari fungsi database rekap_relawan(dari, sampai) -> agregasi dihitung di server (WIB), bukan dari 3000 baris di browser.
+const hariWIB=()=>tgl({created_at:new Date().toISOString()});
+const addDays=(s,n)=>new Date(Date.parse(s+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
+const umurHari=iso=>iso?Math.round((Date.parse(hariWIB()+'T00:00:00Z')-Date.parse(tgl({created_at:iso})+'T00:00:00Z'))/864e5):null;
+const lastTxt=iso=>{const n=umurHari(iso);return n===null?'Belum pernah':n<=0?'Hari ini':n===1?'Kemarin':n+' hari lalu';};
+const waLink=hp=>{let n=String(hp||'').replace(/\D/g,'');if(!n)return null;if(n[0]==='0')n='62'+n.slice(1);else if(n[0]==='8')n='62'+n;return 'https://wa.me/'+n;};
+const sumBy=(l,k)=>l.reduce((a,r)=>a+(+r[k]||0),0);
+const dlCsv=(name,rows)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+rows.map(r=>r.map(csvCell).join(',')).join('\n')],{type:'text/csv'}));a.download=name;a.click();};
+
+function Rekap({d}){
+  const [pk,setPk]=useState('7'),[cd,setCd]=useState(''),[cs,setCs]=useState(''),[rows,setRows]=useState(null),[ld,setLd]=useState(false),[er,setEr]=useState(''),[open,setOpen]=useState({}),[fl,setFl]=useState('hari'),[nIdle,setNIdle]=useState(50),[tick,setTick]=useState(0);
+  const today=hariWIB();
+  const [dari,sampai]=pk==='1'?[today,today]:pk==='7'?[addDays(today,-6),today]:pk==='30'?[addDays(today,-29),today]:[cd,cs];
+  const valid=!!dari&&!!sampai&&dari<=sampai&&(Date.parse(sampai)-Date.parse(dari))/864e5<=365;
+  // muat ulang otomatis bila ada laporan baru / perubahan verifikasi (realtime sudah memperbarui d.k)
+  const sig=d.k.length+':'+(d.k[0]?d.k[0].id:'')+':'+d.k.filter(isV).length+':'+d.k.filter(v=>v.verif_status==='Pending').length;
+  useEffect(()=>{
+    if(!valid)return;
+    let off=false;setLd(true);setEr('');
+    sb.rpc('rekap_relawan',{p_dari:dari,p_sampai:sampai}).then(r=>{
+      if(off)return;setLd(false);
+      if(r.error)setEr(/rekap_relawan/.test(r.error.message||'')?'Fungsi rekap belum terpasang di database. Jalankan rekap-relawan.sql di Supabase SQL Editor.':(r.error.message||'Gagal memuat rekap'));
+      else setRows(r.data||[]);
+    });
+    return()=>{off=true;};
+  },[dari,sampai,valid,sig,tick]);
+  const R=rows||[];
+  const gk=g=>g.id||'none';
+  const groups=[...d.prof.filter(p=>p.role==='koordinator').map(k=>({id:k.id,nama:k.nama,off:!k.aktif})),{id:null,nama:'Tanpa koordinator',off:false}].map(g=>{
+    const l=R.filter(r=>(r.koordinator_id||null)===g.id).sort((a,b)=>(a.kunjungan>0)-(b.kunjungan>0)||a.nama.localeCompare(b.nama));
+    return {...g,l,gerak:l.filter(r=>r.kunjungan>0).length};
+  }).filter(g=>g.l.length||(g.id&&!g.off));
+  const tot=R.length,hari=R.filter(r=>r.hari_ini>0).length,pct=tot?Math.round(hari*100/tot):0,gerakP=R.filter(r=>r.kunjungan>0).length;
+  const koorNama=id=>{const k=id&&d.prof.find(p=>p.id===id);return k?k.nama:'-';};
+  const FL=[['hari','Belum bergerak hari ini'],['3','Tidak lapor ≥ 3 hari'],['7','Tidak lapor ≥ 7 hari'],['nol','Belum pernah lapor']];
+  const pass=r=>fl==='hari'?r.hari_ini===0:fl==='nol'?!r.terakhir:(!r.terakhir||umurHari(r.terakhir)>=+fl);
+  const idle=R.filter(pass).sort((a,b)=>a.terakhir===b.terakhir?a.nama.localeCompare(b.nama):(a.terakhir||'')<(b.terakhir||'')?-1:1);
+  const exp=()=>dlCsv('rpi-rekap-relawan-'+dari+'_'+sampai+'.csv',[['Koordinator','Relawan','No HP','Kunjungan','Berhasil','Menunggu Verifikasi','Dana Verified','Kunjungan Hari Ini','Terakhir Lapor','Status Periode'],...groups.flatMap(g=>g.l.map(r=>[g.nama,r.nama,r.no_hp,r.kunjungan,r.berhasil,r.menunggu,r.dana_verified,r.hari_ini,lastTxt(r.terakhir),r.kunjungan>0?'Bergerak':'Belum bergerak']))]);
+  const mut={color:'var(--mut)',fontSize:12};
+  const periodTxt=dari&&sampai?(dari===sampai?dari:dari+' s/d '+sampai):'';
+  return html`<div>
+  <div class="card"><b>Tracking Hari Ini</b> <span style=${mut}>${today} (WIB)</span> ${ld&&html`<span style=${mut}>· memuat…</span>`}
+    ${er&&html`<div style=${{color:'#dc2626',margin:'8px 0'}}>${er}</div>`}
+    ${rows===null&&!er?html`<div style=${{...mut,marginTop:8}}>Memuat rekap…</div>`:html`<div>
+    <div style=${{height:10,background:'var(--bd)',borderRadius:99,margin:'10px 0',overflow:'hidden'}}><div style=${{width:pct+'%',height:'100%',background:'#16a34a'}}></div></div>
+    <div><b style=${{fontSize:20,color:'var(--pr)'}}>${hari}</b> dari ${tot} relawan sudah bergerak (${pct}%) · <b style=${{color:'#dc2626'}}>${tot-hari}</b> belum melapor hari ini</div>
+    <div style=${{...mut,marginTop:4}}>“Bergerak” = sudah mengirim minimal 1 laporan kunjungan (status apa pun) hari ini. Hanya relawan aktif yang dihitung.</div></div>`}</div>
+
+  <div class="card"><b>Relawan yang Perlu Diingatkan</b>
+    <div class="chips">${FL.map(([k,l])=>html`<button key=${k} class=${fl===k?'a':''} onClick=${()=>{setFl(k);setNIdle(50);}}>${l+' ('+R.filter(r=>k==='hari'?r.hari_ini===0:k==='nol'?!r.terakhir:(!r.terakhir||umurHari(r.terakhir)>=+k)).length+')'}</button>`)}</div>
+    <div class="sc"><table><thead><tr><th>Relawan</th><th>Koordinator</th><th>Terakhir lapor</th><th>Hari ini</th><th></th></tr></thead><tbody>
+    ${idle.slice(0,nIdle).map(r=>html`<tr key=${r.relawan_id}><td>${r.nama}</td><td>${koorNama(r.koordinator_id)}</td><td>${lastTxt(r.terakhir)}</td><td>${r.hari_ini}</td>
+      <td>${waLink(r.no_hp)?html`<a class="btn s o" style=${{textDecoration:'none',display:'inline-block'}} href=${waLink(r.no_hp)} target="_blank" rel="noopener noreferrer">WA</a>`:'-'}</td></tr>`)}
+    ${!idle.length&&html`<tr><td colspan="5" style=${{color:'var(--mut)'}}>${rows===null?'Memuat…':'Tidak ada relawan pada kategori ini 🎉'}</td></tr>`}</tbody></table></div>
+    ${idle.length>nIdle&&html`<div style=${{textAlign:'center',marginTop:8}}><button class="btn s o" onClick=${()=>setNIdle(nIdle+50)}>Tampilkan lebih banyak (${idle.length-nIdle})</button></div>`}</div>
+
+  <div class="card"><b>Rekap per Koordinator</b> <span style=${mut}>${periodTxt}</span>
+    <div class="chips" style=${{marginBottom:6}}>${[['1','Hari ini'],['7','7 hari'],['30','30 hari'],['x','Kustom']].map(([k,l])=>html`<button key=${k} class=${pk===k?'a':''} onClick=${()=>{if(k==='x'&&!cd){setCd(addDays(today,-6));setCs(today);}setPk(k);}}>${l}</button>`)}
+      <button onClick=${()=>setTick(t=>t+1)}>Muat ulang</button><button onClick=${exp} disabled=${!groups.length}>Ekspor CSV</button></div>
+    ${pk==='x'&&html`<div class="grid" style=${{gridTemplateColumns:'1fr 1fr',marginBottom:8}}><div><label>Dari tanggal</label><input type="date" value=${cd} onInput=${e=>setCd(e.target.value)}/></div><div><label>Sampai tanggal</label><input type="date" value=${cs} onInput=${e=>setCs(e.target.value)}/></div></div>`}
+    ${!valid&&html`<div style=${{color:'#dc2626',fontSize:12,marginBottom:8}}>Pilih rentang tanggal yang valid (dari ≤ sampai, maksimal 1 tahun).</div>`}
+    <div class="grid g4" style=${{marginBottom:10}}>${[['Relawan aktif',tot],['Bergerak di periode',gerakP+' / '+tot],['Kunjungan',sumBy(R,'kunjungan')],['Berhasil',sumBy(R,'berhasil')],['Dana Verified',Rp(sumBy(R,'dana_verified'))]].map(([a,b])=>html`<div class="card" style=${{marginBottom:0}} key=${a}><div style=${mut}>${a}</div><div style=${{fontSize:16,fontWeight:800,color:'var(--pr)'}}>${b}</div></div>`)}</div>
+    <div style=${{...mut,marginBottom:6}}>Klik nama koordinator untuk melihat rincian relawannya.</div>
+    <div class="sc"><table><thead><tr><th>Koordinator</th><th>Relawan</th><th>Bergerak</th><th>Belum</th><th>%</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>
+    ${groups.map(g=>html`<${React.Fragment} key=${gk(g)}>
+      <tr style=${{cursor:'pointer'}} onClick=${()=>setOpen(o=>({...o,[gk(g)]:!o[gk(g)]}))}>
+        <td><b>${open[gk(g)]?'▾':'▸'} ${g.nama}</b>${g.off&&html` <span class="badge Rejected">nonaktif</span>`}</td><td>${g.l.length}</td><td>${g.gerak}</td><td>${g.l.length-g.gerak}</td>
+        <td>${g.l.length?Math.round(g.gerak*100/g.l.length)+'%':'-'}</td><td>${sumBy(g.l,'kunjungan')}</td><td>${sumBy(g.l,'berhasil')}</td><td>${Rp(sumBy(g.l,'dana_verified'))}</td></tr>
+      ${open[gk(g)]&&html`<tr><td colspan="8" style=${{padding:0}}><div class="sc" style=${{padding:'4px 8px 10px',background:'var(--prl)'}}>
+        ${g.l.length?html`<table><thead><tr><th>Relawan</th><th>Status</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th><th>Terakhir lapor</th><th>Hari ini</th></tr></thead><tbody>
+        ${g.l.map(r=>html`<tr key=${r.relawan_id}><td>${r.nama}</td><td><span class=${'badge '+(r.kunjungan>0?'Verified':'Rejected')}>${r.kunjungan>0?'Bergerak':'Belum bergerak'}</span></td><td>${r.kunjungan}</td><td>${r.berhasil}</td><td>${Rp(r.dana_verified)}</td><td>${lastTxt(r.terakhir)}</td><td>${r.hari_ini}</td></tr>`)}</tbody></table>`:html`<div style=${{...mut,padding:8}}>Belum ada relawan aktif di koordinator ini.</div>`}</div></td></tr>`}
+    <//>`)}
+    ${!groups.length&&html`<tr><td colspan="8" style=${{color:'var(--mut)'}}>${rows===null?'Memuat…':'Belum ada data'}</td></tr>`}
+    ${groups.length>0&&html`<tr style=${{fontWeight:700}}><td>Total</td><td>${tot}</td><td>${gerakP}</td><td>${tot-gerakP}</td><td>${tot?Math.round(gerakP*100/tot)+'%':'-'}</td><td>${sumBy(R,'kunjungan')}</td><td>${sumBy(R,'berhasil')}</td><td>${Rp(sumBy(R,'dana_verified'))}</td></tr>`}</tbody></table></div></div></div>`;
+}
+
 function Main({me,out}){
   const [d,setD]=useState({k:[],cat:[],rek:[],lem:null,don:[],prof:[]}),[tab,setTab]=useState(me.role==='owner'?'dash':me.role==='koordinator'?'mon':'home'),[rc,setRc]=useState(null),[ban,setBan]=useState(true),[inst,setInst]=useState(false);
   const reload=useCallback(async()=>{
@@ -325,7 +402,7 @@ function Main({me,out}){
   useEffect(()=>{setInst(window.matchMedia('(display-mode: standalone)').matches||!!navigator.standalone);const h=e=>{e.preventDefault();window.__ip=e;};window.addEventListener('beforeinstallprompt',h);return()=>window.removeEventListener('beforeinstallprompt',h);},[]);
   const mobile=/Android|iPhone|iPad/i.test(navigator.userAgent);
   const nav=[['home','Home',P.home],['lapor','Lapor',P.plus],['riwayat','Riwayat',P.list],['akun','Akun',P.user]];
-  const tabs=me.role==='owner'?[['dash','Dashboard'],['kun','Kunjungan'],['ver','Verifikasi'],['mst','Master Data'],['tim','Relawan']]:[];
+  const tabs=me.role==='owner'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan'],['ver','Verifikasi'],['mst','Master Data'],['tim','Relawan']]:[];
   return html`<div>
   <header class="top"><span class="logo">RPI <span style=${{fontWeight:400,fontSize:12,color:'var(--mut)'}}>${d.lem?d.lem.nama:''}</span></span><span style=${{display:'flex',alignItems:'center',gap:8}}><span style=${{fontSize:12}}>${me.nama} <span class="badge St">${me.role}</span></span><${ThemeBtn}/><button class="btn s o" onClick=${out}>Keluar</button></span></header>
   <div class="wrap">
@@ -338,7 +415,7 @@ function Main({me,out}){
     ${tab==='akun'&&html`<div class="card"><b>${me.nama}</b><div style=${{color:'var(--mut)'}}>Relawan RPI · ${me.no_hp||''}</div></div>`}</div>`}
   ${me.role==='koordinator'&&html`<div style=${{marginTop:12}}><${Coord} d=${d}/></div>`}
   ${me.role==='owner'&&html`<div><div class="chips">${tabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}<button onClick=${()=>exportCsv(d.k)}>Ekspor CSV</button></div>
-    ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='kun'&&html`<${Kun} d=${d} reload=${reload}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}</div>`}
+    ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='rkp'&&html`<${Rekap} d=${d}/>`}${tab==='kun'&&html`<${Kun} d=${d} reload=${reload}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}</div>`}
   </div>
   ${me.role==='relawan'&&html`<nav class="nav">${nav.map(([k,l,p])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}><${Ic} d=${p}/>${l}</button>`)}</nav>`}
   ${rc&&html`<${Receipt} v=${rc} lem=${d.lem} onClose=${()=>setRc(null)}/>`}</div>`;
