@@ -16,31 +16,116 @@
 <meta name="theme-color" content="#1d4ed8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
-:root{color-scheme:light;--bg:#f3f6fc;--card:#fff;--tx:#0f172a;--mut:#64748b;--bd:#dbe4f3;--pr:#1d4ed8;--prl:#e8f0ff}
-:root[data-theme=dark]{color-scheme:dark;--bg:#0b1220;--card:#121b30;--tx:#e8eefb;--mut:#94a3c0;--bd:#223152;--pr:#3b82f6;--prl:#16233f}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#0b1220;--card:#121b30;--tx:#e8eefb;--mut:#94a3c0;--bd:#223152;--pr:#3b82f6;--prl:#16233f}}
-*{box-sizing:border-box}html,body{margin:0}
-body{background:var(--bg);color:var(--tx);font-family:Inter,system-ui,sans-serif;font-size:14px;padding-top:env(safe-area-inset-top,0)}
-.wrap{max-width:1000px;margin:0 auto;padding:0 14px 90px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
-.btn{background:var(--pr);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:14px}
-.btn:disabled{opacity:.5}.btn.o{background:transparent;color:var(--pr);border:1px solid var(--pr)}.btn.g{background:#16a34a}.btn.r{background:#dc2626}.btn.s{padding:6px 10px;font-size:12px}
-input,select,textarea{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;margin-top:4px}
-label{font-size:12px;color:var(--mut);display:block;margin-top:10px}
+:root{color-scheme:light;--bg:#f3f6fc;--card:#fff;--tx:#0f172a;--mut:#64748b;--bd:#dbe4f3;--pr:#1d4ed8;--prl:#e8f0ff;--sh:0 1px 2px rgba(15,23,42,.05),0 8px 24px rgba(29,78,216,.08);--glass:rgba(255,255,255,.86);--hh:62px}
+:root[data-theme=dark]{color-scheme:dark;--bg:#0b1220;--card:#121b30;--tx:#e8eefb;--mut:#94a3c0;--bd:#223152;--pr:#3b82f6;--prl:#16233f;--sh:0 1px 2px rgba(0,0,0,.35),0 10px 26px rgba(0,0,0,.28);--glass:rgba(18,27,48,.86)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#0b1220;--card:#121b30;--tx:#e8eefb;--mut:#94a3c0;--bd:#223152;--pr:#3b82f6;--prl:#16233f;--sh:0 1px 2px rgba(0,0,0,.35),0 10px 26px rgba(0,0,0,.28);--glass:rgba(18,27,48,.86)}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.45;padding-top:env(safe-area-inset-top,0)}
+.wrap{max-width:1000px;margin:0 auto;padding:0 14px 110px}.wrap.m{max-width:520px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:16px;margin-bottom:12px;box-shadow:var(--sh)}
+.card>b:first-child{font-size:15px;font-weight:800}
+.btn{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;border:0;border-radius:14px;padding:12px 18px;min-height:44px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(29,78,216,.28);transition:transform .12s,opacity .12s}
+.btn:active{transform:scale(.97)}.btn:disabled{opacity:.5;transform:none}
+.btn.o{background:transparent;color:var(--pr);border:1.5px solid var(--pr);box-shadow:none}.btn.g{background:#16a34a;box-shadow:none}.btn.r{background:#dc2626;box-shadow:none}
+.btn.s{padding:7px 12px;min-height:34px;border-radius:11px;font-size:12px;box-shadow:none}
+.btn.w{background:rgba(255,255,255,.2);color:#fff;border:0;box-shadow:none}
+.btn.ic{padding:0;width:38px;height:38px;min-height:38px;display:inline-grid;place-items:center;border-radius:12px}
+input,select,textarea{width:100%;padding:12px 14px;min-height:46px;border:1.5px solid var(--bd);border-radius:14px;background:var(--card);color:var(--tx);font:inherit;margin-top:6px;outline:none;transition:border-color .15s,box-shadow .15s}
+textarea{min-height:0}
+input:focus,select:focus,textarea:focus{border-color:var(--pr);box-shadow:0 0 0 4px rgba(59,130,246,.18)}
+label{font-size:12px;font-weight:600;color:var(--mut);display:block;margin-top:12px}
 .grid{display:grid;gap:10px}.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.badge{padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;display:inline-block}
+.badge{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;display:inline-block}
 .Pending{background:#fef3c7;color:#92400e}.Verified{background:#dcfce7;color:#166534}.Rejected{background:#fee2e2;color:#991b1b}.St{background:#e0e7ff;color:#3730a3}
-.nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bd);display:flex;padding-bottom:env(safe-area-inset-bottom,0);z-index:20}
-.nav button{flex:1;background:none;border:0;padding:8px 0;color:var(--mut);font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
-.nav button.a{color:var(--pr);border-top:2px solid var(--pr)}
-.hero{background:linear-gradient(120deg,#3b82f6,#1d4ed8);color:#fff;border-radius:16px;padding:20px;margin-bottom:12px}.hero h2{margin:0 0 4px;font-size:22px}
-table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}.sc{overflow-x:auto}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:14px;z-index:50}
-.modal>div{background:#fff;color:#111;border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:90vh;overflow:auto}
-header.top{position:sticky;top:0;z-index:15;background:var(--card);border-bottom:1px solid var(--bd);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mut{color:var(--mut);font-size:12px}.row{display:flex;align-items:center;gap:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px 8px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);font-weight:700}tr:last-child td{border-bottom:0}.sc{overflow-x:auto}
+header.top{position:sticky;top:0;z-index:15;min-height:var(--hh);background:var(--glass);-webkit-backdrop-filter:saturate(1.4) blur(12px);backdrop-filter:saturate(1.4) blur(12px);border-bottom:1px solid var(--bd);padding:10px max(14px,calc((100% - var(--w,1000px))/2));display:flex;align-items:center;justify-content:space-between;gap:10px}
+header.top.m{--w:520px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.bt{display:flex;flex-direction:column;line-height:1.15;min-width:0}.bt b{font-size:17px;font-weight:800;color:var(--pr);letter-spacing:.02em}
+.bt small{color:var(--mut);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw}
+.bm{width:46px;height:38px;border-radius:12px;background:#fff;border:1px solid var(--bd);display:grid;place-items:center;overflow:hidden;flex:none;box-shadow:0 2px 6px rgba(29,78,216,.1)}
+.bm img{width:100%;height:100%;object-fit:contain;padding:2px}.bm b{color:#1d4ed8;font-weight:800;font-size:14px}
+.bm.big{width:96px;height:76px;border-radius:24px;border:0;box-shadow:0 12px 30px rgba(0,0,0,.24);margin:0 auto}.bm.big b{font-size:26px}
+.hr{display:flex;align-items:center;gap:8px;flex:none}
+.who{display:none;align-items:center;gap:8px;font-size:12px;font-weight:600}
+@media(min-width:560px){.who{display:flex}}
 .logo{font-weight:800;color:var(--pr);font-size:18px}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.chips button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:6px 12px;cursor:pointer;font-size:12px}.chips button.a{background:var(--pr);color:#fff;border-color:var(--pr)}
+.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;border-radius:0 0 28px 28px;padding:22px 20px 76px;margin:0 -14px}
+.hero::before,.hero::after{content:'';position:absolute;border-radius:50%;background:rgba(255,255,255,.12)}
+.hero::before{width:170px;height:170px;right:-50px;top:-60px}.hero::after{width:110px;height:110px;right:80px;bottom:-62px;background:rgba(255,255,255,.08)}
+.hero small{opacity:.88;font-size:13px}.hero h2{margin:2px 0 6px;font-size:26px;font-weight:800;letter-spacing:-.01em}.hero div{opacity:.92;font-size:13px}
+.pull{position:relative;z-index:1;margin-top:-56px}
+@media(min-width:560px){.hero{border-radius:28px;margin:14px 0 0}.pull{padding:0 12px}}
+.wal{background:var(--card);border:1px solid var(--bd);border-radius:22px;padding:16px 16px 14px;box-shadow:var(--sh);margin-bottom:14px}
+.wl{font-size:12px;color:var(--mut);font-weight:600}.wv{font-size:28px;font-weight:800;color:var(--pr);letter-spacing:-.02em;margin:2px 0 12px}
+.wr{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border-top:1px dashed var(--bd);padding-top:12px}
+.wr div{display:flex;flex-direction:column}.wr b{font-size:17px;font-weight:800}.wr span{font-size:11px;color:var(--mut)}
+.svc{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.sv{background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:14px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;font:inherit;font-weight:700;font-size:12px;color:var(--tx);cursor:pointer;box-shadow:var(--sh);transition:transform .12s}.sv:active{transform:scale(.96)}
+.ib{width:48px;height:48px;border-radius:16px;background:var(--prl);color:var(--pr);display:grid;place-items:center;flex:none}
+.ib.p{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;box-shadow:0 8px 18px rgba(29,78,216,.3)}
+.sh{display:flex;justify-content:space-between;align-items:center;margin:18px 2px 10px}.sh b{font-size:15px;font-weight:800}
+.lnk{background:none;border:0;color:var(--pr);font:inherit;font-weight:700;font-size:12px;cursor:pointer;padding:4px 2px}
+.list{display:grid;gap:10px;margin-bottom:12px}
+@media(min-width:760px){.list{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}}
+.it{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:12px;box-shadow:var(--sh);min-width:0}
+.av{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:none}
+.av.ok{background:#dcfce7;color:#166534}.av.no{background:#fee2e2;color:#991b1b}.av.mid{background:#fef3c7;color:#92400e}.av.pr{background:#e0e7ff;color:#3730a3}
+.ib2{flex:1;min-width:0}.r1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.nm{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.am{color:var(--pr);font-weight:800;font-size:14px;white-space:nowrap}
+.sub{color:var(--mut);font-size:12px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bd2{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.ac{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.empty{grid-column:1/-1;text-align:center;padding:28px 16px;color:var(--mut)}.empty b{display:block;color:var(--tx);margin:8px 0 2px;font-size:15px}
+.eic{width:64px;height:64px;border-radius:50%;background:var(--prl);color:var(--pr);display:inline-grid;place-items:center}
+.tabs{display:flex;gap:8px;overflow-x:auto;position:sticky;top:var(--hh);z-index:14;margin:0 -14px 10px;padding:10px 14px;background:var(--bg);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;border:1.5px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:9px 16px;font:inherit;font-weight:700;font-size:13px;cursor:pointer;transition:.15s}
+.tabs button.a{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;border-color:transparent;box-shadow:0 6px 16px rgba(29,78,216,.28)}
+.tabs button.x{border-style:dashed;color:var(--pr)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.chips button{border:1.5px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:8px 14px;cursor:pointer;font:inherit;font-weight:600;font-size:12px}
+.chips button.a{background:var(--pr);color:#fff;border-color:var(--pr)}
+.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));width:min(500px,calc(100% - 24px));background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--bd);border-radius:26px;box-shadow:0 12px 32px rgba(15,23,42,.2);display:flex;gap:4px;padding:6px;z-index:20}
+.nav button{flex:1;background:none;border:0;border-radius:20px;padding:6px 0 7px;color:var(--mut);font:inherit;font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:.15s}
+.nav button .ni{width:40px;height:30px;border-radius:15px;display:grid;place-items:center;transition:.15s}
+.nav button.a{color:var(--pr)}.nav button.a .ni{background:var(--prl)}
+.nav button.fab .ni{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;box-shadow:0 6px 14px rgba(29,78,216,.35)}
+.modal{position:fixed;inset:0;background:rgba(8,15,35,.55);display:flex;align-items:flex-end;justify-content:center;z-index:50;animation:fade .18s}
+.modal>div{background:#fff;color:#111;border-radius:26px 26px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom,0px));max-width:520px;width:100%;max-height:88vh;overflow:auto;animation:up .24s cubic-bezier(.2,.8,.2,1)}
+.modal>div::before{content:'';display:block;width:42px;height:5px;border-radius:9px;background:rgba(100,116,139,.35);margin:-10px auto 14px}
+@media(min-width:640px){.modal{align-items:center;padding:14px}.modal>div{border-radius:26px;max-width:440px}}
+.sht{display:flex;justify-content:space-between;align-items:center}.sht b{font-size:17px}
+.kvs{margin-top:8px}.kv{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--bd);font-size:13px}.kv:last-child{border-bottom:0}
+.kv span{color:var(--mut);flex:none}.kv b{text-align:right;word-break:break-word}
+.lg-top{position:relative;overflow:hidden;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;text-align:center;padding:calc(22px + env(safe-area-inset-top,0px)) 20px 88px;border-radius:0 0 34px 34px}
+.lg-top::before{content:'';position:absolute;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.1);right:-70px;top:-80px}
+.lg-top::after{content:'';position:absolute;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.07);left:-50px;bottom:-60px}
+.lg-th{display:flex;justify-content:flex-end;margin-bottom:6px;position:relative;z-index:1}.lg-top .bm{position:relative;z-index:1}
+.lg-t{font-size:20px;font-weight:800;margin-top:16px;position:relative;z-index:1}.lg-s{opacity:.88;font-size:13px;position:relative;z-index:1}
+.lg-card{width:calc(100% - 32px);max-width:400px;margin:-56px auto 0;position:relative;z-index:2}
 .center{max-width:380px;margin:8vh auto;padding:0 14px}
+.seg{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-top:6px}.seg.c2{grid-template-columns:repeat(2,1fr)}
+.seg button{border:1.5px solid var(--bd);background:var(--card);color:var(--tx);border-radius:14px;padding:12px 8px;font:inherit;font-weight:700;font-size:13px;cursor:pointer;transition:.15s}
+.seg button.a{background:var(--prl);border-color:var(--pr);color:var(--pr);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+.amt{display:flex;align-items:center;gap:8px;border:1.5px solid var(--bd);border-radius:16px;padding:0 14px;margin-top:6px;background:var(--card)}
+.amt:focus-within{border-color:var(--pr);box-shadow:0 0 0 4px rgba(59,130,246,.18)}.amt span{font-weight:800;color:var(--mut);font-size:18px}
+.amt input{border:0;box-shadow:none!important;margin:0;font-size:24px;font-weight:800;padding:10px 0;background:transparent;min-height:56px}
+.note{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--prl);font-size:12px}
+.drop{display:flex;align-items:center;gap:10px;margin-top:6px;padding:14px;border:1.5px dashed var(--pr);border-radius:16px;background:var(--prl);color:var(--pr);font-size:13px;font-weight:700;cursor:pointer}
+.drop span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hello{display:flex;align-items:center;gap:12px;margin:12px 0 0}.hello b{font-size:15px}
+.avt{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;display:grid;place-items:center;font-weight:800;font-size:17px;flex:none}
+.avt.big{width:76px;height:76px;font-size:30px;margin:0 auto 10px}
+.prof{text-align:center}.pn{display:block;font-size:18px}
+.menu{padding:6px 16px}.mi{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 0;border:0;border-bottom:1px solid var(--bd);background:none;color:var(--tx);font:inherit;font-weight:600;cursor:pointer}
+.mi:last-child{border-bottom:0}.mi.lo{color:#dc2626}
+.ins{display:flex;gap:12px;align-items:flex-start;background:var(--prl);border:1px solid var(--bd);border-radius:20px;padding:14px;margin:12px 0}.ins b{font-size:14px}.ins .ac{margin-top:8px}
+.ld{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:32vh;color:var(--mut)}
+.sp{width:34px;height:34px;border:3px solid var(--bd);border-top-color:var(--pr);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes fade{from{opacity:0}}@keyframes up{from{transform:translateY(28px);opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .recharts-cartesian-axis-tick-value,.recharts-pie-label-text{fill:var(--mut)}
 .recharts-cartesian-grid line{stroke:var(--bd)}
 .recharts-default-tooltip{background:var(--card)!important;border-color:var(--bd)!important}
@@ -78,13 +163,30 @@ const applyTheme=t=>{document.documentElement.setAttribute('data-theme',t);ls('r
 setMeta(curTheme());
 
 const Rp=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
-const Ic=({d})=>html`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d=${d}/></svg>`;
+const Ic=({d,s=20})=>html`<svg width=${s} height=${s} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d=${d}/></svg>`;
 const P={home:'M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',plus:'M12 5v14M5 12h14',list:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',user:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8'};
 P.sun='M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42';
 P.moon='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z';
-function ThemeBtn(){
+Object.assign(P,{
+  out:'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
+  chk:'M20 6L9 17l-5-5',x:'M18 6L6 18M6 6l12 12',
+  heart:'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
+  users:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
+  camera:'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8',
+  inbox:'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
+  phone:'M5 2h14a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM12 18h.01'});
+const SI={Berhasil:[P.chk,'ok'],Menolak:[P.x,'no'],Berminat:[P.heart,'mid'],Prospek:[P.user,'pr']};
+const BLN=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const tglUI=s=>{const p=(s||'').split('-');return p.length===3&&BLN[+p[1]-1]?(+p[2])+' '+BLN[+p[1]-1]+' '+p[0]:(s||'');};
+const ini=n=>(String(n||'?').trim().charAt(0)||'?').toUpperCase();
+function Brand({big}){
+  const [bad,setBad]=useState(false);
+  return html`<span class=${'bm'+(big?' big':'')}>${bad?html`<b>RPI</b>`:html`<img src="/logo.png" alt="RPI" onError=${()=>setBad(true)}/>`}</span>`;
+}
+const Spin=t=>html`<div class="ld"><div class="sp"></div><div>${t}</div></div>`;
+function ThemeBtn({w}){
   const [t,setT]=useState(curTheme());
-  return html`<button class="btn s o" title=${t==='dark'?'Mode terang':'Mode gelap'} onClick=${()=>{const n=t==='dark'?'light':'dark';applyTheme(n);setT(n);}}><${Ic} d=${t==='dark'?P.sun:P.moon}/></button>`;
+  return html`<button class=${'btn ic '+(w?'w':'o')} title=${t==='dark'?'Mode terang':'Mode gelap'} aria-label="Ganti tema" onClick=${()=>{const n=t==='dark'?'light':'dark';applyTheme(n);setT(n);}}><${Ic} d=${t==='dark'?P.sun:P.moon}/></button>`;
 }
 const METODE=['Cash','Transfer BNI','Transfer Mandiri','Transfer BSI','QRIS'];
 const STATUS=['Prospek','Berminat','Menolak','Berhasil'];
@@ -123,12 +225,12 @@ function Setup(){
 function Login(){
   const [e,setE]=useState(''),[p,setP]=useState(''),[b,setB]=useState(false);
   const go=async()=>{setB(true);const {error}=await sb.auth.signInWithPassword({email:e.trim(),password:p});setB(false);if(error)alert('Login gagal: '+error.message);};
-  return html`<div class="center card"><div style=${{textAlign:'right'}}><${ThemeBtn}/></div><div class="logo" style=${{fontSize:28}}>RPI</div><div style=${{color:'var(--mut)'}}>Rumah Pelopor Indonesia · #jembatankebaikan</div>
-  <b style=${{display:'block',marginTop:16}}>Yuk masuk untuk mulai melapor</b>
+  return html`<div><div class="lg-top"><div class="lg-th"><${ThemeBtn} w=${true}/></div><${Brand} big=${true}/><div class="lg-t">Rumah Pelopor Indonesia</div><div class="lg-s">#jembatankebaikan</div></div>
+  <div class="card lg-card"><b style=${{fontSize:17}}>Yuk masuk untuk mulai melapor</b>
   <label>Email</label><input type="email" value=${e} onInput=${x=>setE(x.target.value)}/>
   <label>Password</label><input type="password" value=${p} onInput=${x=>setP(x.target.value)} onKeyDown=${x=>x.key==='Enter'&&go()}/>
-  <div style=${{marginTop:14}}><button class="btn" style=${{width:'100%'}} disabled=${b} onClick=${go}>Masuk Sekarang</button></div>
-  <p style=${{fontSize:12,color:'var(--mut)'}}>Akun dibuat oleh Owner. Lupa password? Hubungi Owner.</p></div>`;
+  <div style=${{marginTop:16}}><button class="btn" style=${{width:'100%'}} disabled=${b} onClick=${go}>Masuk Sekarang</button></div>
+  <p class="mut" style=${{marginBottom:0}}>Akun dibuat oleh Owner. Lupa password? Hubungi Owner.</p></div></div>`;
 }
 
 function Receipt({v,lem,onClose}){
@@ -143,15 +245,18 @@ function Receipt({v,lem,onClose}){
 }
 
 function Stats({list}){
-  const it=[['Kunjungan',list.length],['Berhasil',list.filter(v=>v.status==='Berhasil').length],['Dana Terverifikasi',Rp(list.filter(isV).reduce((a,v)=>a+v.nominal,0))],['Menunggu Verifikasi',list.filter(v=>v.verif_status==='Pending').length]];
-  return html`<div class="grid g4" style=${{marginBottom:12}}>${it.map(([a,b])=>html`<div class="card" style=${{marginBottom:0}} key=${a}><div style=${{color:'var(--mut)',fontSize:12}}>${a}</div><div style=${{fontSize:18,fontWeight:800,color:'var(--pr)'}}>${b}</div></div>`)}</div>`;
+  const dana=list.filter(isV).reduce((a,v)=>a+v.nominal,0),ber=list.filter(v=>v.status==='Berhasil').length,pen=list.filter(v=>v.verif_status==='Pending').length;
+  return html`<div class="wal"><div class="wl">Dana Terverifikasi</div><div class="wv">${Rp(dana)}</div>
+  <div class="wr">${[['Kunjungan',list.length],['Berhasil',ber],['Menunggu Verifikasi',pen]].map(([a,b])=>html`<div key=${a}><b>${b}</b><span>${a}</span></div>`)}</div></div>`;
 }
 
 function Tbl({list,act,rc}){
-  return html`<div class="card sc"><table><thead><tr><th>Tgl</th><th>Relawan</th><th>Donatur</th><th>Status</th><th>Nominal</th><th>Metode</th><th>Verif</th>${(act||rc)&&html`<th></th>`}</tr></thead><tbody>
-  ${list.length?list.map(v=>html`<tr key=${v.id}><td>${tgl(v)}</td><td>${v.relawan&&v.relawan.nama}</td><td>${v.donatur_nama}</td><td><span class="badge St">${v.status}</span></td><td>${v.nominal?Rp(v.nominal):'-'}</td><td>${v.metode||'-'}</td>
-  <td>${v.verif_status?html`<span class=${'badge '+v.verif_status}>${v.verif_status}</span>`:'-'}</td>
-  ${act&&html`<td>${act(v)}</td>`}${rc&&html`<td>${isV(v)&&html`<button class="btn s o" onClick=${()=>rc(v)}>Kuitansi</button>`}</td>`}</tr>`):html`<tr><td colspan="8" style=${{color:'var(--mut)'}}>Belum ada data</td></tr>`}</tbody></table></div>`;
+  return html`<div class="list">${list.length?list.map(v=>{const si=SI[v.status]||SI.Prospek;return html`<div class="it" key=${v.id}>
+    <span class=${'av '+si[1]}><${Ic} d=${si[0]}/></span>
+    <div class="ib2"><div class="r1"><b class="nm">${v.donatur_nama}</b><b class="am">${v.nominal?Rp(v.nominal):''}</b></div>
+    <div class="sub">${tglUI(tgl(v))}${v.relawan&&v.relawan.nama?' · '+v.relawan.nama:''}${v.metode?' · '+v.metode:''}</div>
+    <div class="bd2"><span class="badge St">${v.status}</span>${v.verif_status&&html`<span class=${'badge '+v.verif_status}>${v.verif_status}</span>`}</div>
+    ${(act||rc)&&html`<div class="ac">${act&&act(v)}${rc&&isV(v)&&html`<button class="btn s o" onClick=${()=>rc(v)}>Kuitansi</button>`}</div>`}</div></div>`;}):html`<div class="empty card"><span class="eic"><${Ic} d=${P.inbox} s=${30}/></span><b>Belum ada data</b><div>Data kunjungan akan muncul di sini.</div></div>`}</div>`;
 }
 
 function Form({me,d,reload,done}){
@@ -173,17 +278,18 @@ function Form({me,d,reload,done}){
     }catch(e){err(e);}
     setBusy(false);
   };
-  return html`<div class="card"><b>Lapor Kunjungan Baru</b>
+  return html`<div><div class="card"><b>Lapor Kunjungan Baru</b><div class="mut">Isi data kunjungan Anda.</div>
   <label>Donatur</label><select value=${f.did} onChange=${e=>u('did',e.target.value)}><option value="">+ Donatur baru</option>${d.don.map(x=>html`<option key=${x.id} value=${x.id}>${x.nama}</option>`)}</select>
   ${!f.did&&html`<div><input placeholder="Nama donatur" value=${f.nama} onInput=${e=>u('nama',e.target.value)}/><input placeholder="No. HP (opsional)" value=${f.hp} onInput=${e=>u('hp',e.target.value)}/></div>`}
-  <label>Status Kunjungan</label><div class="chips" style=${{margin:'4px 0'}}>${STATUS.map(s=>html`<button key=${s} class=${f.status===s?'a':''} onClick=${()=>u('status',s)}>${s}</button>`)}</div>
-  ${ok&&html`<div><label>Nominal (Rp)</label><input type="number" inputmode="numeric" value=${f.nominal} onInput=${e=>u('nominal',e.target.value)}/>
-  <label>Kategori</label><select value=${f.kat} onChange=${e=>u('kat',e.target.value)}><option value="">Pilih kategori</option>${d.cat.filter(c=>c.aktif).map(c=>html`<option key=${c.id} value=${c.id}>${c.nama}</option>`)}</select>
-  <label>Metode Bayar</label><select value=${f.metode} onChange=${e=>u('metode',e.target.value)}>${METODE.map(m=>html`<option key=${m}>${m}</option>`)}</select>
-  ${f.metode.startsWith('Transfer')&&html`<div style=${{fontSize:12,color:'var(--mut)',marginTop:6}}>Rekening: ${d.rek.filter(r=>r.aktif&&f.metode.endsWith(r.bank)).map(r=>r.bank+' '+r.no_rek+' a.n. '+r.atas_nama).join(' | ')||'-'}</div>`}
-  ${f.metode!=='Cash'&&html`<div><label>Bukti Pembayaran</label><input type="file" accept="image/*" onChange=${e=>u('file',e.target.files[0]||null)}/></div>`}</div>`}
-  <label>Catatan (opsional)</label><input value=${f.cat} onInput=${e=>u('cat',e.target.value)}/>
-  <div style=${{marginTop:14}}><button class="btn" style=${{width:'100%'}} disabled=${busy} onClick=${save}>${busy?'Menyimpan...':'Kirim Laporan'}</button></div></div>`;
+  <label>Status Kunjungan</label><div class="seg c2">${STATUS.map(s=>html`<button key=${s} class=${f.status===s?'a':''} onClick=${()=>u('status',s)}>${s}</button>`)}</div></div>
+  ${ok&&html`<div class="card"><b>Detail Donasi</b>
+  <label>Nominal (Rp)</label><div class="amt"><span>Rp</span><input type="number" inputmode="numeric" placeholder="0" value=${f.nominal} onInput=${e=>u('nominal',e.target.value)}/></div>
+  <label>Kategori</label><div class="seg">${d.cat.filter(c=>c.aktif).map(c=>html`<button key=${c.id} class=${String(f.kat)===String(c.id)?'a':''} onClick=${()=>u('kat',String(c.id))}>${c.nama}</button>`)}</div>
+  <label>Metode Bayar</label><div class="seg c2">${METODE.map(m=>html`<button key=${m} class=${f.metode===m?'a':''} onClick=${()=>u('metode',m)}>${m}</button>`)}</div>
+  ${f.metode.startsWith('Transfer')&&html`<div class="note">Rekening: ${d.rek.filter(r=>r.aktif&&f.metode.endsWith(r.bank)).map(r=>r.bank+' '+r.no_rek+' a.n. '+r.atas_nama).join(' | ')||'-'}</div>`}
+  ${f.metode!=='Cash'&&html`<div><label>Bukti Pembayaran</label><label class="drop"><input type="file" accept="image/*" hidden onChange=${e=>u('file',e.target.files[0]||null)}/><${Ic} d=${P.camera} s=${22}/><span>${f.file?f.file.name:'Ketuk untuk memilih foto bukti'}</span></label></div>`}</div>`}
+  <div class="card"><label style=${{marginTop:0}}>Catatan (opsional)</label><input value=${f.cat} onInput=${e=>u('cat',e.target.value)}/>
+  <div style=${{marginTop:14}}><button class="btn" style=${{width:'100%'}} disabled=${busy} onClick=${save}>${busy?'Menyimpan...':'Kirim Laporan'}</button></div></div></div>`;
 }
 
 const COL=['#2563eb','#0ea5e9','#16a34a','#a855f7','#ef4444'];
@@ -219,9 +325,9 @@ function Detail({v,d,reload,onClose}){
   const set=async s=>{if(s==='Verified'&&!confirm('Approve '+Rp(v.nominal)+' dari '+v.donatur_nama+'?\n\nSetelah Verified, data bersifat final dan tidak bisa diubah.'))return;const r=await sb.from('kunjungan').update({verif_status:s}).eq('id',v.id);if(r.error)err(r.error);else{reload();onClose();}};
   const wk=t=>t?tgl({created_at:t})+' '+jam({created_at:t})+' WIB':null;
   const rows=[['Waktu lapor',wk(v.created_at)],['Relawan',v.relawan&&v.relawan.nama],['Donatur',v.donatur_nama],['No. HP donatur',don&&don.no_hp],['Alamat donatur',don&&don.alamat],['Status kunjungan',v.status],['Catatan',v.catatan],['Nominal',v.nominal?Rp(v.nominal):null],['Kategori',v.kategori&&v.kategori.nama],['Metode',v.metode],['Verifikasi',v.verif_status],['Diverifikasi oleh',vb&&vb.nama],['Waktu verifikasi',wk(v.verif_at)],['No. kuitansi',v.no_kuitansi]].filter(r=>r[1]);
-  return html`<div class="modal" onClick=${onClose}><div style=${{background:'var(--card)',color:'var(--tx)'}} onClick=${e=>e.stopPropagation()}><b style=${{fontSize:16}}>Detail Kunjungan</b>
-  <table><tbody>${rows.map(([a,b])=>html`<tr key=${a}><td style=${{color:'var(--mut)',verticalAlign:'top'}}>${a}</td><td style=${{whiteSpace:'normal'}}><b>${b}</b></td></tr>`)}</tbody></table>
-  <div style=${{display:'flex',gap:8,marginTop:14,flexWrap:'wrap'}}>${v.bukti_path&&html`<button class="btn s o" onClick=${()=>openBukti(v.bukti_path)}>Lihat Bukti</button>`}
+  return html`<div class="modal" onClick=${onClose}><div style=${{background:'var(--card)',color:'var(--tx)'}} onClick=${e=>e.stopPropagation()}><div class="sht"><b>Detail Kunjungan</b></div>
+  <div class="kvs">${rows.map(([a,b])=>html`<div class="kv" key=${a}><span>${a}</span><b>${b}</b></div>`)}</div>
+  <div class="ac" style=${{marginTop:16}}>${v.bukti_path&&html`<button class="btn s o" onClick=${()=>openBukti(v.bukti_path)}>Lihat Bukti</button>`}
   ${v.verif_status==='Pending'&&html`<button class="btn s g" onClick=${()=>set('Verified')}>Approve</button><button class="btn s r" onClick=${()=>set('Rejected')}>Reject</button>`}
   <button class="btn s o" onClick=${onClose}>Tutup</button></div></div></div>`;
 }
@@ -403,21 +509,28 @@ function Main({me,out}){
   const mobile=/Android|iPhone|iPad/i.test(navigator.userAgent);
   const nav=[['home','Home',P.home],['lapor','Lapor',P.plus],['riwayat','Riwayat',P.list],['akun','Akun',P.user]];
   const tabs=me.role==='owner'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan'],['ver','Verifikasi'],['mst','Master Data'],['tim','Relawan']]:[];
+  const isR=me.role==='relawan',first=(me.nama||'').split(' ')[0];
   return html`<div>
-  <header class="top"><span class="logo">RPI <span style=${{fontWeight:400,fontSize:12,color:'var(--mut)'}}>${d.lem?d.lem.nama:''}</span></span><span style=${{display:'flex',alignItems:'center',gap:8}}><span style=${{fontSize:12}}>${me.nama} <span class="badge St">${me.role}</span></span><${ThemeBtn}/><button class="btn s o" onClick=${out}>Keluar</button></span></header>
-  <div class="wrap">
-  ${!inst&&ban&&mobile&&html`<div class="card" style=${{background:'var(--prl)',marginTop:12}}><b>Install ke Layar Utama HP</b><div style=${{fontSize:12,color:'var(--mut)',margin:'4px 0 8px'}}>Buka menu browser (⋮ atau tombol Bagikan), lalu pilih “Tambahkan ke Layar Utama”.</div><button class="btn s" onClick=${()=>window.__ip&&window.__ip.prompt()}>Install</button> <button class="btn s o" onClick=${()=>setBan(false)}>Nanti</button></div>`}
-  ${me.role==='relawan'&&html`<div style=${{marginTop:12}}>
-    ${tab==='home'&&html`<div><div class="hero"><h2>Assalamu’alaikum, ${me.nama.split(' ')[0]}</h2><div>Setiap kunjungan adalah jembatan kebaikan.</div><button class="btn" style=${{background:'#fff',color:'#1d4ed8',marginTop:12}} onClick=${()=>setTab('lapor')}>+ Lapor Kunjungan</button></div><${Stats} list=${d.k}/>
-      <div class="card"><b>Donatur Saya</b><div style=${{color:'var(--mut)'}}>${d.don.length} donatur tercatat</div></div></div>`}
+  <header class=${'top'+(isR?' m':'')}><span class="brand"><${Brand}/><span class="bt"><b>RPI</b><small>${d.lem?d.lem.nama:'Rumah Pelopor Indonesia'}</small></span></span><span class="hr"><span class="who">${me.nama} <span class="badge St">${me.role}</span></span><${ThemeBtn}/><button class="btn ic o" title="Keluar" aria-label="Keluar" onClick=${out}><${Ic} d=${P.out}/></button></span></header>
+  <div class=${'wrap'+(isR?' m':'')}>
+  ${!inst&&ban&&mobile&&html`<div class="ins"><span class="ib"><${Ic} d=${P.phone} s=${22}/></span><div><b>Install ke Layar Utama HP</b><div class="mut">Buka menu browser (⋮ atau tombol Bagikan), lalu pilih “Tambahkan ke Layar Utama”.</div><div class="ac"><button class="btn s" onClick=${()=>window.__ip&&window.__ip.prompt()}>Install</button><button class="btn s o" onClick=${()=>setBan(false)}>Nanti</button></div></div></div>`}
+  ${isR&&html`<div style=${{marginTop:tab==='home'?0:14}}>
+    ${tab==='home'&&html`<div><div class="hero"><small>Assalamu’alaikum,</small><h2>${first}</h2><div>Setiap kunjungan adalah jembatan kebaikan.</div></div>
+      <div class="pull"><${Stats} list=${d.k}/></div>
+      <div class="svc">${[['lapor','Lapor',P.plus,true],['riwayat','Riwayat',P.list,false],['akun','Akun',P.user,false]].map(([k,l,p,pri])=>html`<button class="sv" key=${k} onClick=${()=>setTab(k)}><span class=${'ib'+(pri?' p':'')}><${Ic} d=${p} s=${22}/></span>${l}</button>`)}</div>
+      <div class="card row"><span class="ib"><${Ic} d=${P.users} s=${22}/></span><div><b>Donatur Saya</b><div class="mut">${d.don.length} donatur tercatat</div></div></div>
+      <div class="sh"><b>Aktivitas Terbaru</b><button class="lnk" onClick=${()=>setTab('riwayat')}>Lihat semua</button></div>
+      <${Tbl} list=${d.k.slice(0,3)} rc=${setRc}/></div>`}
     ${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} done=${()=>setTab('riwayat')}/>`}
-    ${tab==='riwayat'&&html`<${Tbl} list=${d.k} rc=${setRc}/>`}
-    ${tab==='akun'&&html`<div class="card"><b>${me.nama}</b><div style=${{color:'var(--mut)'}}>Relawan RPI · ${me.no_hp||''}</div></div>`}</div>`}
+    ${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:0}}><b>Riwayat Kunjungan</b><span class="mut">${d.k.length} data</span></div><${Tbl} list=${d.k} rc=${setRc}/></div>`}
+    ${tab==='akun'&&html`<div><div class="card prof"><span class="avt big">${ini(me.nama)}</span><b class="pn">${me.nama}</b><div class="mut">Relawan RPI${me.no_hp?' · '+me.no_hp:''}</div></div>
+      <div class="card menu"><div class="mi"><span>Mode tampilan</span><${ThemeBtn}/></div><button class="mi lo" onClick=${out}><span>Keluar</span><${Ic} d=${P.out}/></button></div></div>`}</div>`}
+  ${!isR&&html`<div class="hello"><span class="avt">${ini(me.nama)}</span><div><b>Halo, ${first}</b><div class="mut">Pantau kunjungan dan donasi tim hari ini.</div></div></div>`}
   ${me.role==='koordinator'&&html`<div style=${{marginTop:12}}><${Coord} d=${d}/></div>`}
-  ${me.role==='owner'&&html`<div><div class="chips">${tabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}<button onClick=${()=>exportCsv(d.k)}>Ekspor CSV</button></div>
+  ${me.role==='owner'&&html`<div><div class="tabs">${tabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}<button class="x" onClick=${()=>exportCsv(d.k)}>Ekspor CSV</button></div>
     ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='rkp'&&html`<${Rekap} d=${d}/>`}${tab==='kun'&&html`<${Kun} d=${d} reload=${reload}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}</div>`}
   </div>
-  ${me.role==='relawan'&&html`<nav class="nav">${nav.map(([k,l,p])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}><${Ic} d=${p}/>${l}</button>`)}</nav>`}
+  ${isR&&html`<nav class="nav">${nav.map(([k,l,p])=>html`<button key=${k} class=${(tab===k?'a ':'')+(k==='lapor'?'fab':'')} onClick=${()=>setTab(k)}><span class="ni"><${Ic} d=${p}/></span>${l}</button>`)}</nav>`}
   ${rc&&html`<${Receipt} v=${rc} lem=${d.lem} onClose=${()=>setRc(null)}/>`}</div>`;
 }
 
@@ -427,9 +540,9 @@ function App(){
   useEffect(()=>{if(!sess){setMe(undefined);return;}sb.from('profiles').select('*').eq('id',sess.user.id).maybeSingle().then(({data})=>setMe(data||null));},[sess]);
   const out=()=>sb.auth.signOut();
   if(!sb)return html`<${Setup}/>`;
-  if(sess===undefined)return html`<div class="center">Memuat...</div>`;
+  if(sess===undefined)return Spin('Memuat...');
   if(!sess)return html`<${Login}/>`;
-  if(me===undefined)return html`<div class="center">Memuat profil...</div>`;
+  if(me===undefined)return Spin('Memuat profil...');
   if(!me||!me.aktif)return html`<div class="center card"><b>Akun belum aktif</b><p>Profil belum dibuat atau akun dinonaktifkan. Hubungi Owner.</p><button class="btn o" onClick=${out}>Keluar</button></div>`;
   return html`<${Main} me=${me} out=${out}/>`;
 }
