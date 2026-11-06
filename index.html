@@ -404,7 +404,7 @@ function Team({d,reload}){
   };
   const manage=async(body)=>{const r=await sb.functions.invoke('admin-manage-user',{body});if(r.error||!r.data||r.data.error){alert('Gagal: '+((r.data&&r.data.error)||(r.error&&r.error.message)||'tidak diketahui'));return null;}return r.data;};
   const toggle=async p=>{if(!confirm((p.aktif?'Nonaktifkan ':'Aktifkan ')+p.nama+'?'))return;if(await manage({action:'set_active',user_id:p.id,aktif:!p.aktif}))reload();};
-  const reset=async p=>{if(!confirm('Reset password '+p.nama+'?'))return;const r=await manage({action:'reset_password',user_id:p.id});if(r)setRp(r);};
+  const reset=async p=>{const pw=prompt('Password baru untuk '+p.nama+' (minimal 8 karakter).\nKosongkan lalu OK untuk dibuat otomatis.');if(pw===null)return;const v=pw.trim();if(v&&v.length<8)return alert('Password minimal 8 karakter');const r=await manage({action:'reset_password',user_id:p.id,password:v||undefined});if(r)setRp(r);};
   const list=d.prof.filter(p=>p.role!=='owner'&&(!fr||p.role===fr)&&(!qs.trim()||p.nama.toLowerCase().includes(qs.trim().toLowerCase()))).sort((a,b)=>(ROLE_ORD[a.role]-ROLE_ORD[b.role])||a.nama.localeCompare(b.nama));
   const copyRes=()=>{const t=res.filter(x=>x.ok).map(x=>x.email+' / '+x.password).join('\n');navigator.clipboard&&navigator.clipboard.writeText(t).then(()=>alert('Tersalin'));};
   return html`<div>
