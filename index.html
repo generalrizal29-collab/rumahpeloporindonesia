@@ -74,15 +74,28 @@ header.top.m{--w:520px}
 .ib.p{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;box-shadow:0 8px 18px rgba(29,78,216,.3)}
 .sh{display:flex;justify-content:space-between;align-items:center;margin:18px 2px 10px}.sh b{font-size:15px;font-weight:800}
 .lnk{background:none;border:0;color:var(--pr);font:inherit;font-weight:700;font-size:12px;cursor:pointer;padding:4px 2px}
-.list{display:grid;gap:10px;margin-bottom:12px}
-@media(min-width:760px){.list{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}}
-.it{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:12px;box-shadow:var(--sh);min-width:0}
-.av{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:none}
+.list{container-type:inline-size;display:block;margin-bottom:12px;background:var(--card);border:1px solid var(--bd);border-radius:18px;box-shadow:var(--sh);overflow:hidden}
+.it{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:flex-start;padding:12px 14px;border-bottom:1px solid var(--bd);min-width:0}
+.it:last-child{border-bottom:0}.it{position:relative}.it .am{position:absolute;right:14px;top:12px}.it.hv .nm{padding-right:110px}
+@media(hover:hover){.it:hover{background:var(--prl)}}
+.av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none}
+.av svg{width:18px;height:18px}
 .av.ok{background:#dcfce7;color:#166534}.av.no{background:#fee2e2;color:#991b1b}.av.mid{background:#fef3c7;color:#92400e}.av.pr{background:#e0e7ff;color:#3730a3}
-.ib2{flex:1;min-width:0}.r1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
-.nm{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.am{color:var(--pr);font-weight:800;font-size:14px;white-space:nowrap}
+.mn{flex:1;min-width:0}
+.nm{display:block;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.am{color:var(--pr);font-weight:800;font-size:14px;white-space:nowrap;text-align:right;min-width:0}
 .sub{color:var(--mut);font-size:12px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bd2{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.ac{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.rl{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding:1px 6px;border-radius:99px;background:var(--prl);color:var(--pr);margin-left:4px;vertical-align:1px}
+.bd2{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.ac{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.ft{display:flex;justify-content:space-between;align-items:center;gap:6px 8px;flex-wrap:wrap;margin-top:6px}.ft .bd2{flex:0 0 auto}.ft .ac{flex:0 0 auto;margin-left:auto}
+.ft .bd2{margin:0}.ft .ac{margin:0;gap:6px}.ft .ac .btn{padding:5px 12px;min-height:32px;font-size:12px}
+@container (min-width:860px){
+  .it .am{position:static}.it.hv .nm{padding-right:0}
+  .it{display:grid;grid-template-columns:34px minmax(0,1.3fr) minmax(0,1.2fr) auto 110px auto;column-gap:16px;align-items:center;padding:10px 16px}
+  .it .mn,.it .ft{display:contents}
+  .it>.av{grid-column:1}.it .nm{grid-column:2}.it .sub{grid-column:3;margin:0}.it .bd2{grid-column:4}.it .am{grid-column:5;grid-row:1}.it .sub{text-align:left;justify-self:start;max-width:100%}.it .ac{grid-column:6}
+  .it .av,.it .nm,.it .sub,.it .bd2,.it .ac{grid-row:1}
+}
 .empty{grid-column:1/-1;text-align:center;padding:28px 16px;color:var(--mut)}.empty b{display:block;color:var(--tx);margin:8px 0 2px;font-size:15px}
 .eic{width:64px;height:64px;border-radius:50%;background:var(--prl);color:var(--pr);display:inline-grid;place-items:center}
 .tabs{display:flex;gap:8px;overflow-x:auto;position:sticky;top:var(--hh);z-index:14;margin:0 -14px 10px;padding:10px 14px;background:var(--bg);scrollbar-width:none}
@@ -242,7 +255,35 @@ function Login(){
   <p class="mut" style=${{marginBottom:0}}>Akun dibuat oleh Owner. Lupa password? Hubungi Owner.</p></div></div>`;
 }
 
-function Receipt({v,lem,onClose}){
+// Kuitansi digambar langsung ke canvas lalu diunduh sebagai JPG (tanpa library tambahan; logo dilewati bila server logo menolak CORS)
+async function dlKuitansi(v,lem){
+  const W=720,H=640,S=2,c=document.createElement('canvas');c.width=W*S;c.height=H*S;
+  const g=c.getContext('2d');g.scale(S,S);g.fillStyle='#ffffff';g.fillRect(0,0,W,H);
+  const F='system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif';
+  const txt=(t,x,y,font,col,al)=>{g.font=font;g.fillStyle=col;g.textAlign=al||'left';g.fillText(String(t==null?'':t),x,y);};
+  const fit=(t,max,font)=>{g.font=font;t=String(t==null?'':t);if(g.measureText(t).width<=max)return t;while(t.length>1&&g.measureText(t+'…').width>max)t=t.slice(0,-1);return t+'…';};
+  let logo=null;
+  if(lem&&lem.logo_url)logo=await new Promise(r=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>r(i);i.onerror=()=>r(null);i.src=lem.logo_url;});
+  let y=40;
+  if(logo){const h=60,w=Math.min(220,logo.width*h/logo.height);g.drawImage(logo,W/2-w/2,y,w,h);}
+  else txt('RPI',W/2,y+46,'800 44px '+F,'#1d4ed8','center');
+  y+=84;txt(fit(lem&&lem.nama||'Rumah Pelopor Indonesia',W-80,'500 20px '+F),W/2,y,'500 20px '+F,'#334155','center');
+  y+=34;txt('KUITANSI DIGITAL',W/2,y,'800 26px '+F,'#0f172a','center');
+  y+=16;g.fillStyle='#1d4ed8';g.fillRect(40,y,W-80,3);y+=14;
+  const rows=[['No.',v.no_kuitansi||'-'],['Tanggal',tgl(v)],['Donatur',v.donatur_nama],['Kategori',v.kategori&&v.kategori.nama],['Metode',v.metode],['Relawan',v.relawan&&v.relawan.nama]];
+  rows.forEach(([l,val])=>{y+=46;txt(l,48,y,'500 18px '+F,'#64748b');txt(fit(val||'-',W-250,'700 19px '+F),200,y,'700 19px '+F,'#0f172a');g.fillStyle='#e2e8f0';g.fillRect(40,y+14,W-80,1);});
+  y+=78;txt(Rp(v.nominal),W/2,y,'800 40px '+F,'#1d4ed8','center');
+  y+=50;txt('Jazakumullahu khairan. Semoga menjadi amal jariyah.',W/2,y,'italic 500 16px '+F,'#475569','center');
+  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.92));
+  if(!blob)throw new Error('Gagal membuat gambar');
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='kuitansi-'+String(v.no_kuitansi||'RPI').replace(/[^\w-]+/g,'-')+'.jpg';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+
+function Receipt({v,lem,onClose,jpg}){
+  const [bz,setBz]=useState(false);
+  const dl=async()=>{setBz(true);try{await dlKuitansi(v,lem);}catch(e){alert('Gagal mengunduh kuitansi: '+(e.message||e));}setBz(false);};
   return html`<div class="modal" onClick=${onClose}><div onClick=${e=>e.stopPropagation()}><div id="kw">
     <div style=${{textAlign:'center',borderBottom:'2px solid #1d4ed8',paddingBottom:8}}>
       ${lem&&lem.logo_url?html`<img src=${lem.logo_url} style=${{height:48}}/>`:html`<div style=${{fontWeight:800,fontSize:22,color:'#1d4ed8'}}>RPI</div>`}
@@ -250,7 +291,7 @@ function Receipt({v,lem,onClose}){
     <table><tbody>${[['No.',v.no_kuitansi],['Tanggal',tgl(v)],['Donatur',v.donatur_nama],['Kategori',v.kategori&&v.kategori.nama],['Metode',v.metode],['Relawan',v.relawan&&v.relawan.nama]].map(([a,b])=>html`<tr key=${a}><td>${a}</td><td><b>${b}</b></td></tr>`)}</tbody></table>
     <div style=${{textAlign:'center',fontSize:22,fontWeight:800,margin:'14px 0'}}>${Rp(v.nominal)}</div>
     <div style=${{fontSize:11,textAlign:'center'}}>Jazakumullahu khairan. Semoga menjadi amal jariyah.</div></div>
-    <div style=${{display:'flex',gap:8,marginTop:14}}><button class="btn" onClick=${()=>window.print()}>Cetak</button><button class="btn o" onClick=${onClose}>Tutup</button></div></div></div>`;
+    <div style=${{display:'flex',gap:8,marginTop:14}}>${jpg?html`<button class="btn" disabled=${bz} onClick=${dl}>${bz?'Membuat gambar...':'Unduh JPG'}</button>`:html`<button class="btn" onClick=${()=>window.print()}>Cetak</button>`}<button class="btn o" onClick=${onClose}>Tutup</button></div></div></div>`;
 }
 
 function Stats({list}){
@@ -259,13 +300,15 @@ function Stats({list}){
   <div class="wr">${[['Kunjungan',list.length],['Berhasil',ber],['Menunggu Verifikasi',pen]].map(([a,b])=>html`<div key=${a}><b>${b}</b><span>${a}</span></div>`)}</div></div>`;
 }
 
-function Tbl({list,act,rc,dv}){
-  return html`<div class="list">${list.length?list.map(v=>{const si=SI[v.status]||SI.Prospek;return html`<div class="it" key=${v.id}>
+function Tbl({list,act,rc,dv,pr}){
+  const rlOf=id=>{const p=pr&&pr.find(x=>x.id===id);return p&&p.role!=='relawan'&&p.role!=='owner'?ROLE_LBL[p.role]:'';};
+  return html`<div class="list">${list.length?list.map(v=>{const si=SI[v.status]||SI.Prospek,rl=rlOf(v.relawan_id);return html`<div class=${'it'+(v.nominal?' hv':'')} key=${v.id}>
     <span class=${'av '+si[1]}><${Ic} d=${si[0]}/></span>
-    <div class="ib2"><div class="r1"><b class="nm">${v.donatur_nama}</b><b class="am">${v.nominal?Rp(v.nominal):''}</b></div>
-    <div class="sub">${tglUI(tgl(v))}${v.relawan&&v.relawan.nama?' · '+v.relawan.nama+(dv&&dv(v.relawan.divisi_id)?' ('+dv(v.relawan.divisi_id)+')':''):''}${v.metode?' · '+v.metode:''}</div>
-    <div class="bd2"><span class="badge St">${v.status}</span>${v.verif_status&&html`<span class=${'badge '+v.verif_status}>${v.verif_status}</span>`}</div>
-    ${(act||rc)&&html`<div class="ac">${act&&act(v)}${rc&&isV(v)&&html`<button class="btn s o" onClick=${()=>rc(v)}>Kuitansi</button>`}</div>`}</div></div>`;}):html`<div class="empty card"><span class="eic"><${Ic} d=${P.inbox} s=${30}/></span><b>Belum ada data</b><div>Data kunjungan akan muncul di sini.</div></div>`}</div>`;
+    <div class="mn"><b class="nm">${v.donatur_nama}</b>
+    <div class="sub">${tglUI(tgl(v))}${v.relawan&&v.relawan.nama?' · '+v.relawan.nama+(dv&&dv(v.relawan.divisi_id)?' ('+dv(v.relawan.divisi_id)+')':''):''}${rl?html`<span class="rl">${rl}</span>`:''}${v.metode?' · '+v.metode:''}</div>
+    <div class="ft"><div class="bd2"><span class="badge St">${v.status}</span>${v.verif_status&&html`<span class=${'badge '+v.verif_status}>${v.verif_status}</span>`}</div>
+    ${(act||rc)&&html`<div class="ac">${act&&act(v)}${rc&&isV(v)&&html`<button class="btn s o" onClick=${()=>rc(v)}>Kuitansi</button>`}</div>`}</div></div>
+    ${v.nominal?html`<b class="am">${Rp(v.nominal)}</b>`:''}</div>`;}):html`<div class="empty card"><span class="eic"><${Ic} d=${P.inbox} s=${30}/></span><b>Belum ada data</b><div>Data kunjungan akan muncul di sini.</div></div>`}</div>`;
 }
 
 function Form({me,d,reload,done,pre}){
@@ -318,7 +361,7 @@ function Dash({d}){
   const trend=Object.keys(day).sort().slice(-30).map(k=>({n:k.slice(5),v:day[k]}));
   const byM=METODE.map(m=>({n:m,v:sum(ver.filter(x=>x.metode===m))})).filter(x=>x.v>0);
   const ax=v=>v>=1e6?(v/1e6)+'jt':v;
-  return html`<div><div class="card"><label style=${{marginTop:0}}>Status kunjungan</label><div class="chips">${[['','Semua'],...STATUS.map(x=>[x,x])].map(([k,l])=>html`<button key=${k} class=${sf===k?'a':''} onClick=${()=>setSf(k)}>${l+' ('+Kd.filter(v=>!k||v.status===k).length+')'}</button>`)}</div>
+  return html`<div><${Targets} d=${d}/><div class="card"><label style=${{marginTop:0}}>Status kunjungan</label><div class="chips">${[['','Semua'],...STATUS.map(x=>[x,x])].map(([k,l])=>html`<button key=${k} class=${sf===k?'a':''} onClick=${()=>setSf(k)}>${l+' ('+Kd.filter(v=>!k||v.status===k).length+')'}</button>`)}</div>
   <label>Divisi</label><div style=${{maxWidth:260}}><select value=${dv} onChange=${e=>setDv(e.target.value)}><option value="">Semua divisi</option>${d.div.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div>
   ${sf&&sf!=='Berhasil'&&html`<div class="mut" style=${{fontSize:12,marginTop:6}}>Grafik dana hanya menghitung donasi berstatus Berhasil yang sudah Verified.</div>`}</div>
   <${Stats} list=${K}/>
@@ -349,31 +392,44 @@ function Detail({v,d,reload,onClose,canV}){
 }
 
 function Kun({d,reload,canV}){
-  const [q,setQ]=useState(''),[st,setSt]=useState(''),[rw,setRw]=useState(''),[dr,setDr]=useState(''),[sp,setSp]=useState(''),[sel,setSel]=useState(null),[dvf,setDvf]=useState(''),[n,setN]=useState(100);
-  const rel=d.prof.filter(p=>p.role==='relawan');
+  const [q,setQ]=useState(''),[st,setSt]=useState(''),[rw,setRw]=useState(''),[dr,setDr]=useState(''),[sp,setSp]=useState(''),[sel,setSel]=useState(null),[dvf,setDvf]=useState(''),[n,setN]=useState(100),[rl,setRl]=useState('');
+  const roleOf={};d.prof.forEach(p=>{roleOf[p.id]=p.role;});
+  const rel=d.prof.filter(p=>p.role!=='owner'&&(!rl||p.role===rl));
   const ql=q.trim().toLowerCase();
-  const list=d.k.filter(v=>(!st||v.status===st)&&(!rw||v.relawan_id===rw)&&(!dvf||(v.relawan&&String(v.relawan.divisi_id)===dvf))&&(!dr||tgl(v)>=dr)&&(!sp||tgl(v)<=sp)&&(!ql||(v.donatur_nama||'').toLowerCase().includes(ql)||((v.relawan&&v.relawan.nama)||'').toLowerCase().includes(ql)||(v.catatan||'').toLowerCase().includes(ql)));
+  const list=d.k.filter(v=>(!st||v.status===st)&&(!rl||roleOf[v.relawan_id]===rl)&&(!rw||v.relawan_id===rw)&&(!dvf||(v.relawan&&String(v.relawan.divisi_id)===dvf))&&(!dr||tgl(v)>=dr)&&(!sp||tgl(v)<=sp)&&(!ql||(v.donatur_nama||'').toLowerCase().includes(ql)||((v.relawan&&v.relawan.nama)||'').toLowerCase().includes(ql)||(v.catatan||'').toLowerCase().includes(ql)));
   const cnt=s=>d.k.filter(v=>v.status===s).length;
-  const reset=()=>{setQ('');setSt('');setRw('');setDr('');setSp('');setDvf('');setN(100);};
+  const reset=()=>{setRl('');setQ('');setSt('');setRw('');setDr('');setSp('');setDvf('');setN(100);};
   return html`<div><div class="card"><b>Semua Kunjungan</b> <span style=${{color:'var(--mut)',fontSize:12}}>${list.length} dari ${d.k.length} data</span>
   <div class="chips">${[['','Semua ('+d.k.length+')'],...STATUS.map(s=>[s,s+' ('+cnt(s)+')'])].map(([k,l])=>html`<button key=${k} class=${st===k?'a':''} onClick=${()=>{setSt(k);setN(100);}}>${l}</button>`)}</div>
-  <input placeholder="Cari donatur, relawan, atau catatan" value=${q} onInput=${e=>{setQ(e.target.value);setN(100);}}/>
+  <div class="chips">${[['','Semua peran'],['spv','SPV'],['koordinator','Korel'],['relawan','Relawan']].map(([k,l])=>html`<button key=${k} class=${rl===k?'a':''} onClick=${()=>{setRl(k);setRw('');setN(100);}}>${l+(k?' ('+d.k.filter(v=>roleOf[v.relawan_id]===k).length+')':'')}</button>`)}</div>
+  <input placeholder="Cari donatur, pelapor, atau catatan" value=${q} onInput=${e=>{setQ(e.target.value);setN(100);}}/>
   <div class="grid" style=${{gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))'}}>
-    <div><label>Relawan</label><select value=${rw} onChange=${e=>{setRw(e.target.value);setN(100);}}><option value="">Semua relawan</option>${rel.map(p=>html`<option key=${p.id} value=${p.id}>${p.nama}</option>`)}</select></div>
+    <div><label>Pelapor</label><select value=${rw} onChange=${e=>{setRw(e.target.value);setN(100);}}><option value="">${rl?'Semua '+({spv:'SPV',koordinator:'Korel',relawan:'relawan'})[rl]:'Semua pelapor'}</option>${rel.map(p=>html`<option key=${p.id} value=${p.id}>${p.nama}${rl?'':' ('+ROLE_LBL[p.role]+')'}</option>`)}</select></div>
     <div><label>Divisi</label><select value=${dvf} onChange=${e=>setDvf(e.target.value)}><option value="">Semua divisi</option>${d.div.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div><div><label>Dari tanggal</label><input type="date" value=${dr} onInput=${e=>{setDr(e.target.value);setN(100);}}/></div>
     <div><label>Sampai tanggal</label><input type="date" value=${sp} onInput=${e=>{setSp(e.target.value);setN(100);}}/></div></div>
   <div style=${{display:'flex',gap:8,marginTop:10,flexWrap:'wrap'}}><button class="btn s o" onClick=${()=>exportCsv(list,d.div)}>Ekspor CSV (hasil filter)</button><button class="btn s o" onClick=${reset}>Reset filter</button></div></div>
-  <${Tbl} dv=${id=>divNama(d.div,id)} list=${list.slice(0,n)} act=${v=>html`<button class="btn s o" onClick=${()=>setSel(v)}>Detail</button>`}/>
+  <${Tbl} pr=${d.prof} dv=${id=>divNama(d.div,id)} list=${list.slice(0,n)} act=${v=>html`<button class="btn s o" onClick=${()=>setSel(v)}>Detail</button>`}/>
   ${list.length>n&&html`<div style=${{textAlign:'center',marginBottom:12}}><button class="btn o" onClick=${()=>setN(n+100)}>Tampilkan lebih banyak</button></div>`}
   ${sel&&html`<${Detail} canV=${canV} v=${sel} d=${d} reload=${reload} onClose=${()=>setSel(null)}/>`}</div>`;
 }
 
 function Master({d,reload}){
-  const [nc,setNc]=useState(''),[nd,setNd]=useState(''),[rk,setRk]=useState({bank:'BNI',no_rek:'',atas_nama:''}),[lm,setLm]=useState(d.lem||{nama:'Rumah Pelopor Indonesia',logo_url:'',alamat:''});
+  const [nc,setNc]=useState(''),[nd,setNd]=useState(''),[tf,setTf]=useState({nama:'',nominal:'',mulai:hariWIB(),sampai:'',divisi_id:''}),[te,setTe]=useState(null),[rk,setRk]=useState({bank:'BNI',no_rek:'',atas_nama:''}),[lm,setLm]=useState(d.lem||{nama:'Rumah Pelopor Indonesia',logo_url:'',alamat:''});
   const q=async p=>{const r=await p;if(r.error)err(r.error);else reload();};
   return html`<div><div class="card"><b>Divisi Relawan</b><div class="mut" style=${{fontSize:12}}>Tanda divisi pada relawan. Divisi nonaktif tidak muncul di pilihan baru.</div>
     ${d.div.map(c=>html`<div key=${c.id} style=${{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid var(--line,#eee)'}}><span>${c.nama} ${!c.aktif&&'(nonaktif)'}</span><span style=${{display:'flex',gap:6}}><button class="btn s o" onClick=${()=>{const n=prompt('Nama divisi',c.nama);if(n&&n.trim()&&n.trim()!==c.nama)q(sb.from('divisi').update({nama:n.trim()}).eq('id',c.id));}}>Ubah</button><button class="btn s o" onClick=${()=>q(sb.from('divisi').update({aktif:!c.aktif}).eq('id',c.id))}>${c.aktif?'Nonaktifkan':'Aktifkan'}</button></span></div>`)}
     <div style=${{display:'flex',gap:6,marginTop:8}}><input placeholder="Divisi baru" value=${nd} onInput=${e=>setNd(e.target.value)}/><button class="btn s" onClick=${()=>{if(nd.trim()){q(sb.from('divisi').insert({nama:nd.trim()}));setNd('');}}}>Tambah</button></div></div>
+  <div class="card" id="tf-card"><b>Target Penghimpunan</b><div class="mut" style=${{fontSize:12}}>Progress dihitung dari donasi Verified antara tanggal mulai dan tanggal target, dan tampil di dashboard semua peran. Kosongkan divisi untuk target seluruh lembaga.</div>
+    ${(d.tg||[]).map(t=>html`<div key=${t.id} style=${{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid var(--bd)'}}><span>${t.nama} · ${Rp(t.nominal)}<div class="mut" style=${{fontSize:12}}>${tglUI(t.mulai)} - ${tglUI(t.sampai)}${t.divisi_id?' · '+divNama(d.div,t.divisi_id):''} ${!t.aktif&&'(nonaktif)'}</div></span><span style=${{display:'flex',gap:6,flexWrap:'wrap'}}>
+      <button class="btn s o" onClick=${()=>{setTf({nama:t.nama,nominal:String(t.nominal),mulai:t.mulai,sampai:t.sampai,divisi_id:t.divisi_id?String(t.divisi_id):''});setTe(t.id);const el=document.getElementById('tf-card');if(el)el.scrollIntoView({behavior:'smooth'});}}>Ubah</button>
+      <button class="btn s o" onClick=${()=>q(sb.from('target').update({aktif:!t.aktif}).eq('id',t.id))}>${t.aktif?'Nonaktifkan':'Aktifkan'}</button>
+      <button class="btn s r" onClick=${()=>{if(confirm('Hapus target '+t.nama+'?'))q(sb.from('target').delete().eq('id',t.id));}}>Hapus</button></span></div>`)}
+    ${te&&html`<div style=${{background:'var(--prl)',borderRadius:12,padding:'8px 12px',margin:'10px 0',display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}><span>Sedang mengubah target. Nama, nominal, tanggal, dan divisi bisa diganti.</span><button class="btn s o" onClick=${()=>{setTe(null);setTf({nama:'',nominal:'',mulai:hariWIB(),sampai:'',divisi_id:''});}}>Batal</button></div>`}
+    <label>Nama target</label><input value=${tf.nama} onInput=${e=>setTf({...tf,nama:e.target.value})} placeholder="Contoh: Target Ramadhan"/>
+    <label>Nominal target (Rp)</label><input type="number" inputmode="numeric" value=${tf.nominal} onInput=${e=>setTf({...tf,nominal:e.target.value})}/>
+    <div class="row2"><div><label>Mulai</label><input type="date" value=${tf.mulai} onInput=${e=>setTf({...tf,mulai:e.target.value})}/></div><div><label>Tanggal target</label><input type="date" value=${tf.sampai} onInput=${e=>setTf({...tf,sampai:e.target.value})}/></div></div>
+    <label>Divisi (opsional)</label><select value=${tf.divisi_id} onChange=${e=>setTf({...tf,divisi_id:e.target.value})}><option value="">Semua divisi</option>${d.div.filter(x=>x.aktif).map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select>
+    <div style=${{marginTop:10}}><button class="btn" onClick=${()=>{if(!tf.nama.trim()||!(+tf.nominal>0)||!tf.mulai||!tf.sampai||tf.sampai<tf.mulai)return alert('Lengkapi nama, nominal (lebih dari 0), dan tanggal (tanggal target tidak boleh sebelum tanggal mulai)');const row={nama:tf.nama.trim(),nominal:+tf.nominal,mulai:tf.mulai,sampai:tf.sampai,divisi_id:tf.divisi_id?+tf.divisi_id:null};q(te?sb.from('target').update(row).eq('id',te):sb.from('target').insert(row));setTe(null);setTf({nama:'',nominal:'',mulai:hariWIB(),sampai:'',divisi_id:''});}}>${te?'Simpan Perubahan':'Tambah Target'}</button></div></div>
   <div class="card"><b>Kategori Donasi</b>
   ${d.cat.map(c=>html`<div key=${c.id} style=${{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid var(--bd)'}}>${c.nama} ${!c.aktif&&'(nonaktif)'}<button class="btn s o" onClick=${()=>q(sb.from('kategori').update({aktif:!c.aktif}).eq('id',c.id))}>${c.aktif?'Nonaktifkan':'Aktifkan'}</button></div>`)}
   <div style=${{display:'flex',gap:8,marginTop:8}}><input style=${{marginTop:0}} value=${nc} onInput=${e=>setNc(e.target.value)} placeholder="Kategori baru"/><button class="btn" onClick=${()=>{if(nc.trim()){q(sb.from('kategori').insert({nama:nc.trim()}));setNc('');}}}>Tambah</button></div></div>
@@ -392,7 +448,7 @@ function Team({d,reload}){
   const koors=d.prof.filter(p=>p.role==='koordinator'),spvs=d.prof.filter(p=>p.role==='spv'),divs=d.div.filter(x=>x.aktif);
   const upd=async(id,patch)=>{const r=await sb.from('profiles').update(patch).eq('id',id);if(r.error)err(r.error);else reload();};
   const create=async()=>{
-    const users=txt.split('\n').map(l=>l.split(',').map(s=>s.trim())).filter(a=>a[0]&&a[1]).map(a=>({nama:a[0],email:a[1],no_hp:a[2]||'',password:a[3]||'',role,koordinator_id:role==='relawan'?(co||null):null,spv_id:role==='koordinator'?(sv||null):null,divisi_id:role==='relawan'&&dv?+dv:null}));
+    const users=txt.split('\n').map(l=>l.split(',').map(s=>s.trim())).filter(a=>a[0]&&a[1]).map(a=>({nama:a[0],email:a[1],no_hp:a[2]||'',password:a[3]||'',role,koordinator_id:role==='relawan'?(co||null):null,spv_id:role==='koordinator'?(sv||null):null,divisi_id:dv?+dv:null}));
     if(!users.length)return alert('Isi minimal satu baris: nama, email, no hp, password (opsional)');
     if(users.length>50)return alert('Maksimal 50 akun sekali buat');
     if(users.some(u=>u.password&&u.password.length<8))return alert('Password minimal 8 karakter (atau kosongkan untuk dibuat otomatis)');
@@ -404,13 +460,14 @@ function Team({d,reload}){
   };
   const manage=async(body)=>{const r=await sb.functions.invoke('admin-manage-user',{body});if(r.error||!r.data||r.data.error){alert('Gagal: '+((r.data&&r.data.error)||(r.error&&r.error.message)||'tidak diketahui'));return null;}return r.data;};
   const toggle=async p=>{if(!confirm((p.aktif?'Nonaktifkan ':'Aktifkan ')+p.nama+'?'))return;if(await manage({action:'set_active',user_id:p.id,aktif:!p.aktif}))reload();};
-  const reset=async p=>{if(!confirm('Reset password '+p.nama+'?'))return;const r=await manage({action:'reset_password',user_id:p.id});if(r)setRp(r);};
+  const reset=async p=>{const pw=prompt('Password baru untuk '+p.nama+' (minimal 8 karakter).\nKosongkan lalu OK untuk dibuat otomatis.');if(pw===null)return;const v=pw.trim();if(v&&v.length<8)return alert('Password minimal 8 karakter');const r=await manage({action:'reset_password',user_id:p.id,password:v||undefined});if(r)setRp(r);};
   const list=d.prof.filter(p=>p.role!=='owner'&&(!fr||p.role===fr)&&(!qs.trim()||p.nama.toLowerCase().includes(qs.trim().toLowerCase()))).sort((a,b)=>(ROLE_ORD[a.role]-ROLE_ORD[b.role])||a.nama.localeCompare(b.nama));
   const copyRes=()=>{const t=res.filter(x=>x.ok).map(x=>x.email+' / '+x.password).join('\n');navigator.clipboard&&navigator.clipboard.writeText(t).then(()=>alert('Tersalin'));};
   return html`<div>
     <div class="card"><b>Buat Akun Massal</b>
       <div class="row2"><div><label>Peran</label><select value=${role} onChange=${e=>setRole(e.target.value)}><option value="relawan">Relawan</option><option value="koordinator">Korel</option><option value="spv">SPV</option></select></div>
-      ${role==='relawan'&&html`<div><label>Korel</label><select value=${co} onChange=${e=>setCo(e.target.value)}><option value="">- tanpa korel -</option>${koors.filter(k=>k.aktif).map(k=>html`<option key=${k.id} value=${k.id}>${k.nama}</option>`)}</select></div><div><label>Divisi</label><select value=${dv} onChange=${e=>setDv(e.target.value)}><option value="">- tanpa divisi -</option>${divs.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div>`}
+      ${role==='relawan'&&html`<div><label>Korel</label><select value=${co} onChange=${e=>setCo(e.target.value)}><option value="">- tanpa korel -</option>${koors.filter(k=>k.aktif).map(k=>html`<option key=${k.id} value=${k.id}>${k.nama}</option>`)}</select></div>`}
+      <div><label>Divisi</label><select value=${dv} onChange=${e=>setDv(e.target.value)}><option value="">- tanpa divisi -</option>${divs.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div>
       ${role==='koordinator'&&html`<div><label>SPV</label><select value=${sv} onChange=${e=>setSv(e.target.value)}><option value="">- tanpa SPV -</option>${spvs.filter(k=>k.aktif).map(k=>html`<option key=${k.id} value=${k.id}>${k.nama}</option>`)}</select></div>`}</div>
       <label>Satu baris satu akun: nama, email, no hp, password (kosong = dibuat otomatis)</label>
       <textarea rows="5" value=${txt} onInput=${e=>setTxt(e.target.value)} placeholder="Budi, budi@mail.com, 0812xxxx"></textarea>
@@ -423,7 +480,7 @@ function Team({d,reload}){
       <table><thead><tr><th>Nama</th><th>Peran</th><th>Atasan</th><th>Divisi</th><th>Status</th><th></th></tr></thead><tbody>
       ${list.slice(0,n).map(p=>html`<tr key=${p.id}><td>${p.nama}<div class="mut" style=${{fontSize:11}}>${p.no_hp||''}</div></td><td>${ROLE_LBL[p.role]}</td>
         <td>${p.role==='relawan'?html`<select value=${p.koordinator_id||''} onChange=${e=>upd(p.id,{koordinator_id:e.target.value||null})}><option value="">-</option>${koors.map(k=>html`<option key=${k.id} value=${k.id}>${k.nama}</option>`)}</select>`:p.role==='koordinator'?html`<select value=${p.spv_id||''} onChange=${e=>upd(p.id,{spv_id:e.target.value||null})}><option value="">-</option>${spvs.map(k=>html`<option key=${k.id} value=${k.id}>${k.nama}</option>`)}</select>`:'-'}</td>
-        <td>${p.role==='relawan'?html`<select value=${p.divisi_id?String(p.divisi_id):''} onChange=${e=>upd(p.id,{divisi_id:e.target.value?+e.target.value:null})}><option value="">-</option>${d.div.filter(x=>x.aktif||x.id===p.divisi_id).map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select>`:'-'}</td>
+        <td>${true?html`<select value=${p.divisi_id?String(p.divisi_id):''} onChange=${e=>upd(p.id,{divisi_id:e.target.value?+e.target.value:null})}><option value="">-</option>${d.div.filter(x=>x.aktif||x.id===p.divisi_id).map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select>`:'-'}</td>
         <td><span class=${'badge '+(p.aktif?'Verified':'Rejected')}>${p.aktif?'aktif':'nonaktif'}</span></td>
         <td style=${{whiteSpace:'nowrap'}}><button class="btn s o" onClick=${()=>toggle(p)}>${p.aktif?'Nonaktifkan':'Aktifkan'}</button> <button class="btn s o" onClick=${()=>reset(p)}>Reset PW</button></td></tr>`)}
       </tbody></table>
@@ -435,13 +492,13 @@ function Coord({d}){
   const [dv,setDv]=useState('');
   const rel=d.prof.filter(p=>p.role==='relawan'&&(!dv||String(p.divisi_id||'')===dv)),today=hariWIB();
   const rows=rel.map(p=>{const l=d.k.filter(v=>v.relawan_id===p.id);return{id:p.id,n:p.nama,dv:divNama(d.div,p.divisi_id)||'-',k:l.length,b:l.filter(v=>v.status==='Berhasil').length,dn:l.filter(isV).reduce((a,v)=>a+v.nominal,0),h:l.filter(v=>tgl(v)===today).length,last:l.length?tgl(l[0]):'-'};});
-  return html`<div><${Stats} list=${d.k}/>
+  return html`<div><${Targets} d=${d}/><${Stats} list=${d.k}/>
     <div class="card sc"><b>Pergerakan Tim (${rel.length} relawan)</b>
       <div style=${{maxWidth:220}}><select value=${dv} onChange=${e=>setDv(e.target.value)}><option value="">Semua divisi</option>${d.div.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div>
       <table><thead><tr><th>Relawan</th><th>Divisi</th><th>Hari ini</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th><th>Terakhir</th></tr></thead><tbody>
       ${rows.map(r=>html`<tr key=${r.id}><td>${r.n}</td><td>${r.dv}</td><td>${r.h}</td><td>${r.k}</td><td>${r.b}</td><td>${Rp(r.dn)}</td><td>${r.last}</td></tr>`)}
       </tbody></table></div>
-    <div class="card"><b>Aktivitas Terbaru</b><${Tbl} dv=${id=>divNama(d.div,id)} list=${d.k.slice(0,20)}/></div></div>`;
+    <div class="card"><b>Aktivitas Terbaru</b><${Tbl} pr=${d.prof} dv=${id=>divNama(d.div,id)} list=${d.k.slice(0,20)}/></div></div>`;
 }
 
 // ===== REKAP TIM (owner): rekap per koordinator + tracking relawan sudah/belum bergerak =====
@@ -525,27 +582,97 @@ function Rekap({d}){
     ${groups.length>0&&html`<tr style=${{fontWeight:700}}><td>Total</td><td>${tot}</td><td>${gerakP}</td><td>${tot-gerakP}</td><td>${tot?Math.round(gerakP*100/tot)+'%':'-'}</td><td>${sumBy(R,'kunjungan')}</td><td>${sumBy(R,'berhasil')}</td><td>${Rp(sumBy(R,'dana_verified'))}</td></tr>`}</tbody></table></div></div>${divCard}</div>`;
 }
 
+function Targets({d}){
+  const today=hariWIB(),list=(d.tg||[]).filter(t=>t.aktif);
+  if(!list.length)return null;
+  return html`<div>${list.map(t=>{
+    const got=(d.tp||{})[t.id]||0,kurang=Math.max(0,t.nominal-got),pct=Math.min(100,Math.floor(got/t.nominal*100)),done=kurang===0;
+    const sisa=Math.round((Date.parse(t.sampai+'T00:00:00Z')-Date.parse(today+'T00:00:00Z'))/864e5);
+    const wkt=sisa<0?'Berakhir '+tglUI(t.sampai):sisa===0?'Hari terakhir':sisa+' hari lagi';
+    const box=[[done?'Selisih':'Kurang',done?(got>t.nominal?'Tercapai · lebih '+Rp(got-t.nominal):'Tercapai'):Rp(kurang)],['Sisa waktu',wkt]];
+    if(!done&&sisa>=0)box.push(['Perlu per hari',Rp(Math.ceil(kurang/(sisa+1)))]);
+    return html`<div class="card" key=${t.id}><div style=${{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}><b>${t.nama}${t.divisi_id?' · '+divNama(d.div,t.divisi_id):''}</b><span class="mut" style=${{fontSize:12}}>${tglUI(t.mulai)} - ${tglUI(t.sampai)}</span></div>
+      <div style=${{height:12,borderRadius:8,background:'var(--bd)',overflow:'hidden',margin:'10px 0 6px'}}><div style=${{width:pct+'%',height:'100%',background:done?'#16a34a':'var(--pr)'}}></div></div>
+      <div style=${{display:'flex',justifyContent:'space-between',fontSize:13}}><span>${Rp(got)} dari ${Rp(t.nominal)}</span><b>${pct}%</b></div>
+      <div style=${{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:8,marginTop:10}}>${box.map(([a,b])=>html`<div key=${a}><div class="mut" style=${{fontSize:12}}>${a}</div><b>${b}</b></div>`)}</div></div>`;})}</div>`;
+}
+
+const waClean=t=>String(t||'').replace(/[*_~`]/g,'');
+function klasWa({items,met,mode,pkl,a,b,filt,tg,tp,limit,lembaga}){
+  const MET={dana:'Dana',berhasil:'Berhasil',kunjungan:'Kunjungan'},MD=['🥇','🥈','🥉'],today=hariWIB();
+  const now=new Date().toLocaleString('id-ID',{timeZone:'Asia/Jakarta',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(/\./g,':');
+  const L=['*KLASEMEN '+waClean(lembaga||'RPI').toUpperCase()+'*','Periode: '+pkl+(a===b?'':' ('+tglUI(a)+' - '+tglUI(b)+')'),'Tampilan: '+({rel:'Perorangan',korel:'Per Korel',spv:'Per SPV'})[mode]+' · Urut: '+MET[met]];
+  if(filt.length)L.push('Filter: '+filt.join(' · '));
+  L.push('');
+  items.slice(0,limit).forEach((r,i)=>{L.push((MD[i]||(i+1)+'.')+' *'+waClean(r.nama)+'*');L.push('     '+Rp(r.dana)+' · '+r.berhasil+' berhasil · '+r.kunjungan+' kunjungan');});
+  if(items.length>limit)L.push('','_...dan '+(items.length-limit)+' lainnya_');
+  if(!items.length)L.push('_Belum ada data._');
+  (tg||[]).filter(t=>t.aktif).forEach(t=>{
+    const got=(tp||{})[t.id]||0,kurang=Math.max(0,t.nominal-got),pct=Math.min(100,Math.floor(got/t.nominal*100)),sisa=Math.round((Date.parse(t.sampai+'T00:00:00Z')-Date.parse(today+'T00:00:00Z'))/864e5);
+    L.push('','*Target: '+waClean(t.nama)+'*','Terkumpul '+Rp(got)+' dari '+Rp(t.nominal)+' ('+pct+'%)',kurang?'Kurang '+Rp(kurang)+(sisa<0?' · target berakhir':sisa===0?' · hari terakhir':' · '+sisa+' hari lagi'):'Target tercapai');
+  });
+  L.push('','_Dana = donasi Verified · diperbarui '+now+' WIB_');
+  return L.join('\n');
+}
+
+function Klasemen({d,me}){
+  const [pk,setPk]=useState('30'),[mode,setMode]=useState('rel'),[met,setMet]=useState('dana'),[fs,setFs]=useState(''),[fk,setFk]=useState(''),[dv,setDv]=useState(''),[rows,setRows]=useState(null),[er,setEr]=useState(''),[cp,setCp]=useState(false);
+  const today=hariWIB();
+  const rng=()=>pk==='0'?[today,today]:pk==='bln'?[today.slice(0,8)+'01',today]:pk==='all'?['2000-01-01',today]:[addDays(today,-(+pk-1)),today];
+  useEffect(()=>{let ok=true;setRows(null);
+    const [a,b]=rng();
+    sb.rpc('klasemen',{p_dari:a,p_sampai:b}).then(r=>{if(!ok)return;if(r.error){setEr(r.error.message);setRows([]);}else{setEr('');setRows(r.data||[]);}});
+    return()=>{ok=false};},[pk]);
+  const R=(rows||[]).map(r=>({...r,kunjungan:+r.kunjungan,berhasil:+r.berhasil,dana:+r.dana_verified}));
+  const spvs=R.filter(r=>r.role==='spv'),koors=R.filter(r=>r.role==='koordinator'&&(!fs||r.spv_id===fs));
+  const F=R.filter(r=>(!fs||r.spv_id===fs)&&(!fk||r.koordinator_id===fk||r.id===fk)&&(!dv||String(r.divisi_id||'')===dv));
+  let items;
+  if(mode==='rel')items=F.map(r=>({id:r.id,nama:r.nama,sub:ROLE_LBL[r.role]+(divNama(d.div,r.divisi_id)?' · '+divNama(d.div,r.divisi_id):''),kunjungan:r.kunjungan,berhasil:r.berhasil,dana:r.dana}));
+  else{const gk=mode==='korel'?(r=>r.role==='koordinator'?r.id:r.koordinator_id):(r=>r.spv_id),g={};
+    F.forEach(r=>{const id=gk(r);if(!id)return;const o=g[id]=g[id]||{id,nama:(R.find(x=>x.id===id)||{}).nama||'-',n:0,kunjungan:0,berhasil:0,dana:0};o.n++;o.kunjungan+=r.kunjungan;o.berhasil+=r.berhasil;o.dana+=r.dana;});
+    items=Object.values(g).map(o=>({...o,sub:o.n+' orang'}));}
+  items.sort((a,b)=>(b[met]-a[met])||(b.dana-a.dana)||a.nama.localeCompare(b.nama));
+  const wa=lim=>{const rg=rng();return klasWa({items,met,mode,pkl:({'0':'Hari ini','7':'7 hari terakhir','30':'30 hari terakhir','bln':'Bulan ini','all':'Semua waktu'})[pk],a:rg[0],b:rg[1],filt:[fs&&'SPV '+((R.find(x=>x.id===fs)||{}).nama||''),fk&&'Korel '+((R.find(x=>x.id===fk)||{}).nama||''),dv&&'Divisi '+divNama(d.div,+dv)].filter(Boolean),tg:d.tg,tp:d.tp,limit:lim,lembaga:d.lem&&d.lem.nama});};
+  const copyWa=async()=>{const t=wa(25);try{await navigator.clipboard.writeText(t);}catch(e){const x=document.createElement('textarea');x.value=t;x.style.cssText='position:fixed;opacity:0';document.body.appendChild(x);x.select();let ok=false;try{ok=document.execCommand('copy');}catch(_){}document.body.removeChild(x);if(!ok)return alert('Gagal menyalin. Salin manual atau gunakan tombol Kirim ke WhatsApp.');}setCp(true);setTimeout(()=>setCp(false),2000);};
+  const waUrl=()=>{let t=wa(25);if(encodeURIComponent(t).length>1900)t=wa(10);return 'https://wa.me/?text='+encodeURIComponent(t);};
+  const chip=(v,cur,set,l)=>html`<button key=${v} class=${cur===v?'a':''} onClick=${()=>set(v)}>${l}</button>`;
+  return html`<div><div class="card"><b>Klasemen</b><div class="mut" style=${{fontSize:12}}>Dana dihitung dari donasi yang sudah Verified.</div>
+    <label>Periode</label><div class="chips">${[['0','Hari ini'],['7','7 hari'],['30','30 hari'],['bln','Bulan ini'],['all','Semua']].map(([v,l])=>chip(v,pk,setPk,l))}</div>
+    <label>Tampilkan</label><div class="chips">${[['rel','Perorangan'],['korel','Per Korel'],['spv','Per SPV']].map(([v,l])=>chip(v,mode,setMode,l))}</div>
+    <label>Urutkan berdasarkan</label><div class="chips">${[['dana','Dana'],['berhasil','Berhasil'],['kunjungan','Kunjungan']].map(([v,l])=>chip(v,met,setMet,l))}</div>
+    <div class="row2"><div><label>Filter SPV</label><select value=${fs} onChange=${e=>{setFs(e.target.value);setFk('');}}><option value="">Semua SPV</option>${spvs.map(x=>html`<option key=${x.id} value=${x.id}>${x.nama}</option>`)}</select></div>
+    <div><label>Filter Korel</label><select value=${fk} onChange=${e=>setFk(e.target.value)}><option value="">Semua Korel</option>${koors.map(x=>html`<option key=${x.id} value=${x.id}>${x.nama}</option>`)}</select></div>
+    <div><label>Divisi</label><select value=${dv} onChange=${e=>setDv(e.target.value)}><option value="">Semua divisi</option>${d.div.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div></div></div>
+    ${er&&html`<div class="card" style=${{color:'#dc2626'}}>${/klasemen/i.test(er)?'Fungsi klasemen belum terpasang. Jalankan schema-migrasi-spv.sql di Supabase SQL Editor.':er}</div>`}
+    <div class="card sc">${rows!==null&&items.length>0&&html`<div style=${{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}><button class="btn s" onClick=${copyWa}>${cp?'Tersalin ✓':'Salin untuk WhatsApp'}</button><a class="btn s o" style=${{textDecoration:'none',display:'inline-block'}} href=${waUrl()} target="_blank" rel="noopener noreferrer">Kirim ke WhatsApp</a></div>`}${rows===null?Spin('Memuat klasemen...'):html`<table><thead><tr><th>#</th><th>Nama</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>
+      ${items.map((r,i)=>html`<tr key=${r.id} style=${r.id===me.id?{background:'var(--prl)',fontWeight:700}:null}><td><b>${i+1}</b></td><td>${r.nama}<div class="mut" style=${{fontSize:11}}>${r.sub}</div></td><td>${r.kunjungan}</td><td>${r.berhasil}</td><td>${Rp(r.dana)}</td></tr>`)}
+      ${!items.length&&html`<tr><td colspan="5" class="mut">Belum ada data.</td></tr>`}</tbody></table>`}</div></div>`;
+}
+
 function Main({me,out}){
   const [pre,setPre]=useState('');
-  const [d,setD]=useState({k:[],cat:[],rek:[],lem:null,don:[],prof:[],div:[]}),[tab,setTab]=useState(me.role==='owner'||me.role==='spv'?'dash':me.role==='koordinator'?'mon':'home'),[rc,setRc]=useState(null),[ban,setBan]=useState(true),[inst,setInst]=useState(false);
+  const [d,setD]=useState({k:[],cat:[],rek:[],lem:null,don:[],prof:[],div:[],tg:[],tp:{}}),[tab,setTab]=useState(me.role==='owner'||me.role==='spv'?'dash':me.role==='koordinator'?'mon':'home'),[rc,setRc]=useState(null),[ban,setBan]=useState(true),[inst,setInst]=useState(false);
   const reload=useCallback(async()=>{
-    const [k,cat,rek,lem,don,prof,dvs]=await Promise.all([
+    const [k,cat,rek,lem,don,prof,dvs,tg,tp]=await Promise.all([
       KQ(),
       sb.from('kategori').select('*').order('id'),sb.from('rekening').select('*').order('id'),sb.from('lembaga').select('*').eq('id',1).maybeSingle(),
-      sb.from('donatur').select('*').order('nama'),sb.from('profiles').select('*').order('nama'),sb.from('divisi').select('*').order('nama')]);
-    setD({k:k.data||[],cat:cat.data||[],rek:rek.data||[],lem:lem.data,don:don.data||[],prof:prof.data||[],div:dvs.data||[]});
+      sb.from('donatur').select('*').order('nama'),sb.from('profiles').select('*').order('nama'),sb.from('divisi').select('*').order('nama'),sb.from('target').select('*').order('sampai'),sb.rpc('target_progress')]);
+    setD({k:k.data||[],cat:cat.data||[],rek:rek.data||[],lem:lem.data,don:don.data||[],prof:prof.data||[],div:dvs.data||[],tg:tg.data||[],tp:Object.fromEntries((tp.data||[]).map(x=>[x.id,+x.terkumpul]))});
   },[]);
   useEffect(()=>{
     reload();
     if(me.role==='relawan')return; // relawan tidak butuh realtime (hemat koneksi & egress free tier)
     let t=null;
-    const ch=sb.channel('rt-kunjungan').on('postgres_changes',{event:'*',schema:'public',table:'kunjungan'},()=>{clearTimeout(t);t=setTimeout(async()=>{const k=await KQ();if(!k.error)setD(s=>({...s,k:k.data||[]}));},4000);}).subscribe();
+    const ch=sb.channel('rt-kunjungan').on('postgres_changes',{event:'*',schema:'public',table:'kunjungan'},()=>{clearTimeout(t);t=setTimeout(async()=>{const [k,tp]=await Promise.all([KQ(),sb.rpc('target_progress')]);if(!k.error)setD(s=>({...s,k:k.data||[],tp:tp.error?s.tp:Object.fromEntries((tp.data||[]).map(x=>[x.id,+x.terkumpul]))}));},4000);}).subscribe();
     return()=>{clearTimeout(t);sb.removeChannel(ch)};
   },[reload,me.role]);
   useEffect(()=>{setInst(window.matchMedia('(display-mode: standalone)').matches||!!navigator.standalone);const h=e=>{e.preventDefault();window.__ip=e;};window.addEventListener('beforeinstallprompt',h);return()=>window.removeEventListener('beforeinstallprompt',h);},[]);
   const mobile=/Android|iPhone|iPad/i.test(navigator.userAgent);
   const nav=[['home','Home',P.home],['lapor','Lapor',P.plus],['riwayat','Riwayat',P.list],['akun','Akun',P.user]];
-  const tabs=me.role==='owner'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan'],['ver','Verifikasi'],['mst','Master Data'],['tim','Pengguna']]:me.role==='spv'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan']]:[];
+  const mine=d.k.filter(v=>v.relawan_id===me.id);
+  const selfTabs=[['lapor','Lapor Kunjungan'],['riwayat','Riwayat Saya']];
+  const korTabs=[['mon','Tim'],['klas','Klasemen'],...selfTabs];
+  const tabs=me.role==='owner'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan'],['klas','Klasemen'],['ver','Verifikasi'],['mst','Master Data'],['tim','Pengguna']]:me.role==='spv'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan'],['klas','Klasemen'],...selfTabs]:[];
   const isR=me.role==='relawan',first=(me.nama||'').split(' ')[0];
   useEffect(()=>{if(tab!=='lapor')setPre('');},[tab]);
   const lastBy={};d.k.forEach(v=>{if(v.donatur_id&&!lastBy[v.donatur_id])lastBy[v.donatur_id]=v.id;});
@@ -561,21 +688,24 @@ function Main({me,out}){
   ${isR&&html`<div style=${{marginTop:tab==='home'?0:14}}>
     ${tab==='home'&&html`<div><div class="hero"><small>Assalamu’alaikum,</small><h2>${first}</h2><div>Setiap kunjungan adalah jembatan kebaikan.</div></div>
       <div class="pull"><${Stats} list=${d.k}/></div>
+      <${Targets} d=${d}/>
       <div class="svc">${[['lapor','Lapor',P.plus,true],['riwayat','Riwayat',P.list,false],['akun','Akun',P.user,false]].map(([k,l,p,pri])=>html`<button class="sv" key=${k} onClick=${()=>setTab(k)}><span class=${'ib'+(pri?' p':'')}><${Ic} d=${p} s=${22}/></span>${l}</button>`)}</div>
+      <button class="card row" style=${{width:'100%',textAlign:'left',cursor:'pointer'}} onClick=${()=>setTab('klas')}><span class="ib"><${Ic} d=${P.users} s=${22}/></span><div><b>Klasemen</b><div class="mut">Lihat peringkat tim</div></div></button>
       <div class="card row"><span class="ib"><${Ic} d=${P.users} s=${22}/></span><div><b>Donatur Saya</b><div class="mut">${d.don.length} donatur tercatat</div></div></div>
       <div class="sh"><b>Aktivitas Terbaru</b><button class="lnk" onClick=${()=>setTab('riwayat')}>Lihat semua</button></div>
       <${Tbl} list=${d.k.slice(0,3)} rc=${setRc}/></div>`}
     ${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab('riwayat');}}/>`}
     ${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:0}}><b>Riwayat Kunjungan</b><span class="mut">${d.k.length} data</span></div><${Tbl} list=${d.k} rc=${setRc} act=${actR}/></div>`}
+    ${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}
     ${tab==='akun'&&html`<div><div class="card prof"><span class="avt big">${ini(me.nama)}</span><b class="pn">${me.nama}</b><div class="mut">Relawan RPI${divNama(d.div,me.divisi_id)?' · Divisi '+divNama(d.div,me.divisi_id):''}${me.no_hp?' · '+me.no_hp:''}</div></div>
       <div class="card menu"><div class="mi"><span>Mode tampilan</span><${ThemeBtn}/></div><button class="mi lo" onClick=${out}><span>Keluar</span><${Ic} d=${P.out}/></button></div></div>`}</div>`}
   ${!isR&&html`<div class="hello"><span class="avt">${ini(me.nama)}</span><div><b>Halo, ${first}</b><div class="mut">Pantau kunjungan dan donasi tim hari ini.</div></div></div>`}
-  ${me.role==='koordinator'&&html`<div style=${{marginTop:12}}><${Coord} d=${d}/></div>`}
+  ${me.role==='koordinator'&&html`<div style=${{marginTop:12}}><div class="tabs">${korTabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}</div>${tab==='mon'&&html`<${Coord} d=${d}/>`}${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab('riwayat');}}/>`}${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:12}}><b>Riwayat Kunjungan Saya</b><span class="mut">${mine.length} data</span></div><${Tbl} list=${mine} rc=${setRc} act=${actR}/></div>`}</div>`}
   ${(me.role==='owner'||me.role==='spv')&&html`<div><div class="tabs">${tabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}<button class="x" onClick=${()=>exportCsv(d.k,d.div)}>Ekspor CSV</button></div>
-    ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='rkp'&&html`<${Rekap} d=${d}/>`}${tab==='kun'&&html`<${Kun} d=${d} reload=${reload} canV=${me.role==='owner'}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}</div>`}
+    ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}${tab==='rkp'&&html`<${Rekap} d=${d}/>`}${tab==='kun'&&html`<${Kun} d=${d} reload=${reload} canV=${me.role==='owner'}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab('riwayat');}}/>`}${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:12}}><b>Riwayat Kunjungan Saya</b><span class="mut">${mine.length} data</span></div><${Tbl} list=${mine} rc=${setRc} act=${actR}/></div>`}</div>`}
   </div>
   ${isR&&html`<nav class="nav">${nav.map(([k,l,p])=>html`<button key=${k} class=${(tab===k?'a ':'')+(k==='lapor'?'fab':'')} onClick=${()=>setTab(k)}><span class="ni"><${Ic} d=${p}/></span>${l}</button>`)}</nav>`}
-  ${rc&&html`<${Receipt} v=${rc} lem=${d.lem} onClose=${()=>setRc(null)}/>`}</div>`;
+  ${rc&&html`<${Receipt} v=${rc} lem=${d.lem} jpg=${me.role!=='owner'} onClose=${()=>setRc(null)}/>`}</div>`;
 }
 
 function App(){
