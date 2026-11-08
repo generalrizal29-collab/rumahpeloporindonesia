@@ -361,7 +361,7 @@ function Dash({d}){
   const trend=Object.keys(day).sort().slice(-30).map(k=>({n:k.slice(5),v:day[k]}));
   const byM=METODE.map(m=>({n:m,v:sum(ver.filter(x=>x.metode===m))})).filter(x=>x.v>0);
   const ax=v=>v>=1e6?(v/1e6)+'jt':v;
-  return html`<div><div class="card"><label style=${{marginTop:0}}>Status kunjungan</label><div class="chips">${[['','Semua'],...STATUS.map(x=>[x,x])].map(([k,l])=>html`<button key=${k} class=${sf===k?'a':''} onClick=${()=>setSf(k)}>${l+' ('+Kd.filter(v=>!k||v.status===k).length+')'}</button>`)}</div>
+  return html`<div><${Targets} d=${d}/><div class="card"><label style=${{marginTop:0}}>Status kunjungan</label><div class="chips">${[['','Semua'],...STATUS.map(x=>[x,x])].map(([k,l])=>html`<button key=${k} class=${sf===k?'a':''} onClick=${()=>setSf(k)}>${l+' ('+Kd.filter(v=>!k||v.status===k).length+')'}</button>`)}</div>
   <label>Divisi</label><div style=${{maxWidth:260}}><select value=${dv} onChange=${e=>setDv(e.target.value)}><option value="">Semua divisi</option>${d.div.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div>
   ${sf&&sf!=='Berhasil'&&html`<div class="mut" style=${{fontSize:12,marginTop:6}}>Grafik dana hanya menghitung donasi berstatus Berhasil yang sudah Verified.</div>`}</div>
   <${Stats} list=${K}/>
@@ -414,11 +414,21 @@ function Kun({d,reload,canV}){
 }
 
 function Master({d,reload}){
-  const [nc,setNc]=useState(''),[nd,setNd]=useState(''),[rk,setRk]=useState({bank:'BNI',no_rek:'',atas_nama:''}),[lm,setLm]=useState(d.lem||{nama:'Rumah Pelopor Indonesia',logo_url:'',alamat:''});
+  const [nc,setNc]=useState(''),[nd,setNd]=useState(''),[tf,setTf]=useState({nama:'',nominal:'',mulai:hariWIB(),sampai:'',divisi_id:''}),[rk,setRk]=useState({bank:'BNI',no_rek:'',atas_nama:''}),[lm,setLm]=useState(d.lem||{nama:'Rumah Pelopor Indonesia',logo_url:'',alamat:''});
   const q=async p=>{const r=await p;if(r.error)err(r.error);else reload();};
   return html`<div><div class="card"><b>Divisi Relawan</b><div class="mut" style=${{fontSize:12}}>Tanda divisi pada relawan. Divisi nonaktif tidak muncul di pilihan baru.</div>
     ${d.div.map(c=>html`<div key=${c.id} style=${{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid var(--line,#eee)'}}><span>${c.nama} ${!c.aktif&&'(nonaktif)'}</span><span style=${{display:'flex',gap:6}}><button class="btn s o" onClick=${()=>{const n=prompt('Nama divisi',c.nama);if(n&&n.trim()&&n.trim()!==c.nama)q(sb.from('divisi').update({nama:n.trim()}).eq('id',c.id));}}>Ubah</button><button class="btn s o" onClick=${()=>q(sb.from('divisi').update({aktif:!c.aktif}).eq('id',c.id))}>${c.aktif?'Nonaktifkan':'Aktifkan'}</button></span></div>`)}
     <div style=${{display:'flex',gap:6,marginTop:8}}><input placeholder="Divisi baru" value=${nd} onInput=${e=>setNd(e.target.value)}/><button class="btn s" onClick=${()=>{if(nd.trim()){q(sb.from('divisi').insert({nama:nd.trim()}));setNd('');}}}>Tambah</button></div></div>
+  <div class="card"><b>Target Penghimpunan</b><div class="mut" style=${{fontSize:12}}>Progress dihitung dari donasi Verified antara tanggal mulai dan tanggal target, dan tampil di dashboard semua peran. Kosongkan divisi untuk target seluruh lembaga.</div>
+    ${(d.tg||[]).map(t=>html`<div key=${t.id} style=${{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid var(--bd)'}}><span>${t.nama} · ${Rp(t.nominal)}<div class="mut" style=${{fontSize:12}}>${tglUI(t.mulai)} - ${tglUI(t.sampai)}${t.divisi_id?' · '+divNama(d.div,t.divisi_id):''} ${!t.aktif&&'(nonaktif)'}</div></span><span style=${{display:'flex',gap:6,flexWrap:'wrap'}}>
+      <button class="btn s o" onClick=${()=>{const n=prompt('Nominal target (Rp)',t.nominal);if(n===null)return;const sp=prompt('Tanggal target (YYYY-MM-DD)',t.sampai);if(sp===null)return;if(!(+n>0)||!/^\d{4}-\d{2}-\d{2}$/.test(sp)||sp<t.mulai)return alert('Nominal harus lebih dari 0 dan tanggal valid (tidak sebelum tanggal mulai)');q(sb.from('target').update({nominal:+n,sampai:sp}).eq('id',t.id));}}>Ubah</button>
+      <button class="btn s o" onClick=${()=>q(sb.from('target').update({aktif:!t.aktif}).eq('id',t.id))}>${t.aktif?'Nonaktifkan':'Aktifkan'}</button>
+      <button class="btn s r" onClick=${()=>{if(confirm('Hapus target '+t.nama+'?'))q(sb.from('target').delete().eq('id',t.id));}}>Hapus</button></span></div>`)}
+    <label>Nama target</label><input value=${tf.nama} onInput=${e=>setTf({...tf,nama:e.target.value})} placeholder="Contoh: Target Ramadhan"/>
+    <label>Nominal target (Rp)</label><input type="number" inputmode="numeric" value=${tf.nominal} onInput=${e=>setTf({...tf,nominal:e.target.value})}/>
+    <div class="row2"><div><label>Mulai</label><input type="date" value=${tf.mulai} onInput=${e=>setTf({...tf,mulai:e.target.value})}/></div><div><label>Tanggal target</label><input type="date" value=${tf.sampai} onInput=${e=>setTf({...tf,sampai:e.target.value})}/></div></div>
+    <label>Divisi (opsional)</label><select value=${tf.divisi_id} onChange=${e=>setTf({...tf,divisi_id:e.target.value})}><option value="">Semua divisi</option>${d.div.filter(x=>x.aktif).map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select>
+    <div style=${{marginTop:10}}><button class="btn" onClick=${()=>{if(!tf.nama.trim()||!(+tf.nominal>0)||!tf.mulai||!tf.sampai||tf.sampai<tf.mulai)return alert('Lengkapi nama, nominal (lebih dari 0), dan tanggal (tanggal target tidak boleh sebelum tanggal mulai)');q(sb.from('target').insert({nama:tf.nama.trim(),nominal:+tf.nominal,mulai:tf.mulai,sampai:tf.sampai,divisi_id:tf.divisi_id?+tf.divisi_id:null}));setTf({nama:'',nominal:'',mulai:hariWIB(),sampai:'',divisi_id:''});}}>Tambah Target</button></div></div>
   <div class="card"><b>Kategori Donasi</b>
   ${d.cat.map(c=>html`<div key=${c.id} style=${{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid var(--bd)'}}>${c.nama} ${!c.aktif&&'(nonaktif)'}<button class="btn s o" onClick=${()=>q(sb.from('kategori').update({aktif:!c.aktif}).eq('id',c.id))}>${c.aktif?'Nonaktifkan':'Aktifkan'}</button></div>`)}
   <div style=${{display:'flex',gap:8,marginTop:8}}><input style=${{marginTop:0}} value=${nc} onInput=${e=>setNc(e.target.value)} placeholder="Kategori baru"/><button class="btn" onClick=${()=>{if(nc.trim()){q(sb.from('kategori').insert({nama:nc.trim()}));setNc('');}}}>Tambah</button></div></div>
@@ -480,7 +490,7 @@ function Coord({d}){
   const [dv,setDv]=useState('');
   const rel=d.prof.filter(p=>p.role==='relawan'&&(!dv||String(p.divisi_id||'')===dv)),today=hariWIB();
   const rows=rel.map(p=>{const l=d.k.filter(v=>v.relawan_id===p.id);return{id:p.id,n:p.nama,dv:divNama(d.div,p.divisi_id)||'-',k:l.length,b:l.filter(v=>v.status==='Berhasil').length,dn:l.filter(isV).reduce((a,v)=>a+v.nominal,0),h:l.filter(v=>tgl(v)===today).length,last:l.length?tgl(l[0]):'-'};});
-  return html`<div><${Stats} list=${d.k}/>
+  return html`<div><${Targets} d=${d}/><${Stats} list=${d.k}/>
     <div class="card sc"><b>Pergerakan Tim (${rel.length} relawan)</b>
       <div style=${{maxWidth:220}}><select value=${dv} onChange=${e=>setDv(e.target.value)}><option value="">Semua divisi</option>${d.div.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div>
       <table><thead><tr><th>Relawan</th><th>Divisi</th><th>Hari ini</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th><th>Terakhir</th></tr></thead><tbody>
@@ -570,21 +580,88 @@ function Rekap({d}){
     ${groups.length>0&&html`<tr style=${{fontWeight:700}}><td>Total</td><td>${tot}</td><td>${gerakP}</td><td>${tot-gerakP}</td><td>${tot?Math.round(gerakP*100/tot)+'%':'-'}</td><td>${sumBy(R,'kunjungan')}</td><td>${sumBy(R,'berhasil')}</td><td>${Rp(sumBy(R,'dana_verified'))}</td></tr>`}</tbody></table></div></div>${divCard}</div>`;
 }
 
+function Targets({d}){
+  const today=hariWIB(),list=(d.tg||[]).filter(t=>t.aktif);
+  if(!list.length)return null;
+  return html`<div>${list.map(t=>{
+    const got=(d.tp||{})[t.id]||0,kurang=Math.max(0,t.nominal-got),pct=Math.min(100,Math.floor(got/t.nominal*100)),done=kurang===0;
+    const sisa=Math.round((Date.parse(t.sampai+'T00:00:00Z')-Date.parse(today+'T00:00:00Z'))/864e5);
+    const wkt=sisa<0?'Berakhir '+tglUI(t.sampai):sisa===0?'Hari terakhir':sisa+' hari lagi';
+    const box=[[done?'Selisih':'Kurang',done?(got>t.nominal?'Tercapai · lebih '+Rp(got-t.nominal):'Tercapai'):Rp(kurang)],['Sisa waktu',wkt]];
+    if(!done&&sisa>=0)box.push(['Perlu per hari',Rp(Math.ceil(kurang/(sisa+1)))]);
+    return html`<div class="card" key=${t.id}><div style=${{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}><b>${t.nama}${t.divisi_id?' · '+divNama(d.div,t.divisi_id):''}</b><span class="mut" style=${{fontSize:12}}>${tglUI(t.mulai)} - ${tglUI(t.sampai)}</span></div>
+      <div style=${{height:12,borderRadius:8,background:'var(--bd)',overflow:'hidden',margin:'10px 0 6px'}}><div style=${{width:pct+'%',height:'100%',background:done?'#16a34a':'var(--pr)'}}></div></div>
+      <div style=${{display:'flex',justifyContent:'space-between',fontSize:13}}><span>${Rp(got)} dari ${Rp(t.nominal)}</span><b>${pct}%</b></div>
+      <div style=${{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:8,marginTop:10}}>${box.map(([a,b])=>html`<div key=${a}><div class="mut" style=${{fontSize:12}}>${a}</div><b>${b}</b></div>`)}</div></div>`;})}</div>`;
+}
+
+const waClean=t=>String(t||'').replace(/[*_~`]/g,'');
+function klasWa({items,met,mode,pkl,a,b,filt,tg,tp,limit,lembaga}){
+  const MET={dana:'Dana',berhasil:'Berhasil',kunjungan:'Kunjungan'},MD=['🥇','🥈','🥉'],today=hariWIB();
+  const now=new Date().toLocaleString('id-ID',{timeZone:'Asia/Jakarta',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(/\./g,':');
+  const L=['*KLASEMEN '+waClean(lembaga||'RPI').toUpperCase()+'*','Periode: '+pkl+(a===b?'':' ('+tglUI(a)+' - '+tglUI(b)+')'),'Tampilan: '+({rel:'Perorangan',korel:'Per Korel',spv:'Per SPV'})[mode]+' · Urut: '+MET[met]];
+  if(filt.length)L.push('Filter: '+filt.join(' · '));
+  L.push('');
+  items.slice(0,limit).forEach((r,i)=>{L.push((MD[i]||(i+1)+'.')+' *'+waClean(r.nama)+'*');L.push('     '+Rp(r.dana)+' · '+r.berhasil+' berhasil · '+r.kunjungan+' kunjungan');});
+  if(items.length>limit)L.push('','_...dan '+(items.length-limit)+' lainnya_');
+  if(!items.length)L.push('_Belum ada data._');
+  (tg||[]).filter(t=>t.aktif).forEach(t=>{
+    const got=(tp||{})[t.id]||0,kurang=Math.max(0,t.nominal-got),pct=Math.min(100,Math.floor(got/t.nominal*100)),sisa=Math.round((Date.parse(t.sampai+'T00:00:00Z')-Date.parse(today+'T00:00:00Z'))/864e5);
+    L.push('','*Target: '+waClean(t.nama)+'*','Terkumpul '+Rp(got)+' dari '+Rp(t.nominal)+' ('+pct+'%)',kurang?'Kurang '+Rp(kurang)+(sisa<0?' · target berakhir':sisa===0?' · hari terakhir':' · '+sisa+' hari lagi'):'Target tercapai');
+  });
+  L.push('','_Dana = donasi Verified · diperbarui '+now+' WIB_');
+  return L.join('\n');
+}
+
+function Klasemen({d,me}){
+  const [pk,setPk]=useState('30'),[mode,setMode]=useState('rel'),[met,setMet]=useState('dana'),[fs,setFs]=useState(''),[fk,setFk]=useState(''),[dv,setDv]=useState(''),[rows,setRows]=useState(null),[er,setEr]=useState(''),[cp,setCp]=useState(false);
+  const today=hariWIB();
+  const rng=()=>pk==='0'?[today,today]:pk==='bln'?[today.slice(0,8)+'01',today]:pk==='all'?['2000-01-01',today]:[addDays(today,-(+pk-1)),today];
+  useEffect(()=>{let ok=true;setRows(null);
+    const [a,b]=rng();
+    sb.rpc('klasemen',{p_dari:a,p_sampai:b}).then(r=>{if(!ok)return;if(r.error){setEr(r.error.message);setRows([]);}else{setEr('');setRows(r.data||[]);}});
+    return()=>{ok=false};},[pk]);
+  const R=(rows||[]).map(r=>({...r,kunjungan:+r.kunjungan,berhasil:+r.berhasil,dana:+r.dana_verified}));
+  const spvs=R.filter(r=>r.role==='spv'),koors=R.filter(r=>r.role==='koordinator'&&(!fs||r.spv_id===fs));
+  const F=R.filter(r=>(!fs||r.spv_id===fs)&&(!fk||r.koordinator_id===fk||r.id===fk)&&(!dv||String(r.divisi_id||'')===dv));
+  let items;
+  if(mode==='rel')items=F.map(r=>({id:r.id,nama:r.nama,sub:ROLE_LBL[r.role]+(divNama(d.div,r.divisi_id)?' · '+divNama(d.div,r.divisi_id):''),kunjungan:r.kunjungan,berhasil:r.berhasil,dana:r.dana}));
+  else{const gk=mode==='korel'?(r=>r.role==='koordinator'?r.id:r.koordinator_id):(r=>r.spv_id),g={};
+    F.forEach(r=>{const id=gk(r);if(!id)return;const o=g[id]=g[id]||{id,nama:(R.find(x=>x.id===id)||{}).nama||'-',n:0,kunjungan:0,berhasil:0,dana:0};o.n++;o.kunjungan+=r.kunjungan;o.berhasil+=r.berhasil;o.dana+=r.dana;});
+    items=Object.values(g).map(o=>({...o,sub:o.n+' orang'}));}
+  items.sort((a,b)=>(b[met]-a[met])||(b.dana-a.dana)||a.nama.localeCompare(b.nama));
+  const wa=lim=>{const rg=rng();return klasWa({items,met,mode,pkl:({'0':'Hari ini','7':'7 hari terakhir','30':'30 hari terakhir','bln':'Bulan ini','all':'Semua waktu'})[pk],a:rg[0],b:rg[1],filt:[fs&&'SPV '+((R.find(x=>x.id===fs)||{}).nama||''),fk&&'Korel '+((R.find(x=>x.id===fk)||{}).nama||''),dv&&'Divisi '+divNama(d.div,+dv)].filter(Boolean),tg:d.tg,tp:d.tp,limit:lim,lembaga:d.lem&&d.lem.nama});};
+  const copyWa=async()=>{const t=wa(25);try{await navigator.clipboard.writeText(t);}catch(e){const x=document.createElement('textarea');x.value=t;x.style.cssText='position:fixed;opacity:0';document.body.appendChild(x);x.select();let ok=false;try{ok=document.execCommand('copy');}catch(_){}document.body.removeChild(x);if(!ok)return alert('Gagal menyalin. Salin manual atau gunakan tombol Kirim ke WhatsApp.');}setCp(true);setTimeout(()=>setCp(false),2000);};
+  const waUrl=()=>{let t=wa(25);if(encodeURIComponent(t).length>1900)t=wa(10);return 'https://wa.me/?text='+encodeURIComponent(t);};
+  const chip=(v,cur,set,l)=>html`<button key=${v} class=${cur===v?'a':''} onClick=${()=>set(v)}>${l}</button>`;
+  return html`<div><div class="card"><b>Klasemen</b><div class="mut" style=${{fontSize:12}}>Dana dihitung dari donasi yang sudah Verified.</div>
+    <label>Periode</label><div class="chips">${[['0','Hari ini'],['7','7 hari'],['30','30 hari'],['bln','Bulan ini'],['all','Semua']].map(([v,l])=>chip(v,pk,setPk,l))}</div>
+    <label>Tampilkan</label><div class="chips">${[['rel','Perorangan'],['korel','Per Korel'],['spv','Per SPV']].map(([v,l])=>chip(v,mode,setMode,l))}</div>
+    <label>Urutkan berdasarkan</label><div class="chips">${[['dana','Dana'],['berhasil','Berhasil'],['kunjungan','Kunjungan']].map(([v,l])=>chip(v,met,setMet,l))}</div>
+    <div class="row2"><div><label>Filter SPV</label><select value=${fs} onChange=${e=>{setFs(e.target.value);setFk('');}}><option value="">Semua SPV</option>${spvs.map(x=>html`<option key=${x.id} value=${x.id}>${x.nama}</option>`)}</select></div>
+    <div><label>Filter Korel</label><select value=${fk} onChange=${e=>setFk(e.target.value)}><option value="">Semua Korel</option>${koors.map(x=>html`<option key=${x.id} value=${x.id}>${x.nama}</option>`)}</select></div>
+    <div><label>Divisi</label><select value=${dv} onChange=${e=>setDv(e.target.value)}><option value="">Semua divisi</option>${d.div.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div></div></div>
+    ${er&&html`<div class="card" style=${{color:'#dc2626'}}>${/klasemen/i.test(er)?'Fungsi klasemen belum terpasang. Jalankan schema-migrasi-spv.sql di Supabase SQL Editor.':er}</div>`}
+    <div class="card sc">${rows!==null&&items.length>0&&html`<div style=${{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}><button class="btn s" onClick=${copyWa}>${cp?'Tersalin ✓':'Salin untuk WhatsApp'}</button><a class="btn s o" style=${{textDecoration:'none',display:'inline-block'}} href=${waUrl()} target="_blank" rel="noopener noreferrer">Kirim ke WhatsApp</a></div>`}${rows===null?Spin('Memuat klasemen...'):html`<table><thead><tr><th>#</th><th>Nama</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>
+      ${items.map((r,i)=>html`<tr key=${r.id} style=${r.id===me.id?{background:'var(--prl)',fontWeight:700}:null}><td><b>${i+1}</b></td><td>${r.nama}<div class="mut" style=${{fontSize:11}}>${r.sub}</div></td><td>${r.kunjungan}</td><td>${r.berhasil}</td><td>${Rp(r.dana)}</td></tr>`)}
+      ${!items.length&&html`<tr><td colspan="5" class="mut">Belum ada data.</td></tr>`}</tbody></table>`}</div></div>`;
+}
+
 function Main({me,out}){
   const [pre,setPre]=useState('');
-  const [d,setD]=useState({k:[],cat:[],rek:[],lem:null,don:[],prof:[],div:[]}),[tab,setTab]=useState(me.role==='owner'||me.role==='spv'?'dash':me.role==='koordinator'?'mon':'home'),[rc,setRc]=useState(null),[ban,setBan]=useState(true),[inst,setInst]=useState(false);
+  const [d,setD]=useState({k:[],cat:[],rek:[],lem:null,don:[],prof:[],div:[],tg:[],tp:{}}),[tab,setTab]=useState(me.role==='owner'||me.role==='spv'?'dash':me.role==='koordinator'?'mon':'home'),[rc,setRc]=useState(null),[ban,setBan]=useState(true),[inst,setInst]=useState(false);
   const reload=useCallback(async()=>{
-    const [k,cat,rek,lem,don,prof,dvs]=await Promise.all([
+    const [k,cat,rek,lem,don,prof,dvs,tg,tp]=await Promise.all([
       KQ(),
       sb.from('kategori').select('*').order('id'),sb.from('rekening').select('*').order('id'),sb.from('lembaga').select('*').eq('id',1).maybeSingle(),
-      sb.from('donatur').select('*').order('nama'),sb.from('profiles').select('*').order('nama'),sb.from('divisi').select('*').order('nama')]);
-    setD({k:k.data||[],cat:cat.data||[],rek:rek.data||[],lem:lem.data,don:don.data||[],prof:prof.data||[],div:dvs.data||[]});
+      sb.from('donatur').select('*').order('nama'),sb.from('profiles').select('*').order('nama'),sb.from('divisi').select('*').order('nama'),sb.from('target').select('*').order('sampai'),sb.rpc('target_progress')]);
+    setD({k:k.data||[],cat:cat.data||[],rek:rek.data||[],lem:lem.data,don:don.data||[],prof:prof.data||[],div:dvs.data||[],tg:tg.data||[],tp:Object.fromEntries((tp.data||[]).map(x=>[x.id,+x.terkumpul]))});
   },[]);
   useEffect(()=>{
     reload();
     if(me.role==='relawan')return; // relawan tidak butuh realtime (hemat koneksi & egress free tier)
     let t=null;
-    const ch=sb.channel('rt-kunjungan').on('postgres_changes',{event:'*',schema:'public',table:'kunjungan'},()=>{clearTimeout(t);t=setTimeout(async()=>{const k=await KQ();if(!k.error)setD(s=>({...s,k:k.data||[]}));},4000);}).subscribe();
+    const ch=sb.channel('rt-kunjungan').on('postgres_changes',{event:'*',schema:'public',table:'kunjungan'},()=>{clearTimeout(t);t=setTimeout(async()=>{const [k,tp]=await Promise.all([KQ(),sb.rpc('target_progress')]);if(!k.error)setD(s=>({...s,k:k.data||[],tp:tp.error?s.tp:Object.fromEntries((tp.data||[]).map(x=>[x.id,+x.terkumpul]))}));},4000);}).subscribe();
     return()=>{clearTimeout(t);sb.removeChannel(ch)};
   },[reload,me.role]);
   useEffect(()=>{setInst(window.matchMedia('(display-mode: standalone)').matches||!!navigator.standalone);const h=e=>{e.preventDefault();window.__ip=e;};window.addEventListener('beforeinstallprompt',h);return()=>window.removeEventListener('beforeinstallprompt',h);},[]);
@@ -592,8 +669,8 @@ function Main({me,out}){
   const nav=[['home','Home',P.home],['lapor','Lapor',P.plus],['riwayat','Riwayat',P.list],['akun','Akun',P.user]];
   const mine=d.k.filter(v=>v.relawan_id===me.id);
   const selfTabs=[['lapor','Lapor Kunjungan'],['riwayat','Riwayat Saya']];
-  const korTabs=[['mon','Tim'],...selfTabs];
-  const tabs=me.role==='owner'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan'],['ver','Verifikasi'],['mst','Master Data'],['tim','Pengguna']]:me.role==='spv'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan'],...selfTabs]:[];
+  const korTabs=[['mon','Tim'],['klas','Klasemen'],...selfTabs];
+  const tabs=me.role==='owner'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan'],['klas','Klasemen'],['ver','Verifikasi'],['mst','Master Data'],['tim','Pengguna']]:me.role==='spv'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan'],['klas','Klasemen'],...selfTabs]:[];
   const isR=me.role==='relawan',first=(me.nama||'').split(' ')[0];
   useEffect(()=>{if(tab!=='lapor')setPre('');},[tab]);
   const lastBy={};d.k.forEach(v=>{if(v.donatur_id&&!lastBy[v.donatur_id])lastBy[v.donatur_id]=v.id;});
@@ -609,18 +686,21 @@ function Main({me,out}){
   ${isR&&html`<div style=${{marginTop:tab==='home'?0:14}}>
     ${tab==='home'&&html`<div><div class="hero"><small>Assalamu’alaikum,</small><h2>${first}</h2><div>Setiap kunjungan adalah jembatan kebaikan.</div></div>
       <div class="pull"><${Stats} list=${d.k}/></div>
+      <${Targets} d=${d}/>
       <div class="svc">${[['lapor','Lapor',P.plus,true],['riwayat','Riwayat',P.list,false],['akun','Akun',P.user,false]].map(([k,l,p,pri])=>html`<button class="sv" key=${k} onClick=${()=>setTab(k)}><span class=${'ib'+(pri?' p':'')}><${Ic} d=${p} s=${22}/></span>${l}</button>`)}</div>
+      <button class="card row" style=${{width:'100%',textAlign:'left',cursor:'pointer'}} onClick=${()=>setTab('klas')}><span class="ib"><${Ic} d=${P.users} s=${22}/></span><div><b>Klasemen</b><div class="mut">Lihat peringkat tim</div></div></button>
       <div class="card row"><span class="ib"><${Ic} d=${P.users} s=${22}/></span><div><b>Donatur Saya</b><div class="mut">${d.don.length} donatur tercatat</div></div></div>
       <div class="sh"><b>Aktivitas Terbaru</b><button class="lnk" onClick=${()=>setTab('riwayat')}>Lihat semua</button></div>
       <${Tbl} list=${d.k.slice(0,3)} rc=${setRc}/></div>`}
     ${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab('riwayat');}}/>`}
     ${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:0}}><b>Riwayat Kunjungan</b><span class="mut">${d.k.length} data</span></div><${Tbl} list=${d.k} rc=${setRc} act=${actR}/></div>`}
+    ${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}
     ${tab==='akun'&&html`<div><div class="card prof"><span class="avt big">${ini(me.nama)}</span><b class="pn">${me.nama}</b><div class="mut">Relawan RPI${divNama(d.div,me.divisi_id)?' · Divisi '+divNama(d.div,me.divisi_id):''}${me.no_hp?' · '+me.no_hp:''}</div></div>
       <div class="card menu"><div class="mi"><span>Mode tampilan</span><${ThemeBtn}/></div><button class="mi lo" onClick=${out}><span>Keluar</span><${Ic} d=${P.out}/></button></div></div>`}</div>`}
   ${!isR&&html`<div class="hello"><span class="avt">${ini(me.nama)}</span><div><b>Halo, ${first}</b><div class="mut">Pantau kunjungan dan donasi tim hari ini.</div></div></div>`}
-  ${me.role==='koordinator'&&html`<div style=${{marginTop:12}}><div class="tabs">${korTabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}</div>${tab==='mon'&&html`<${Coord} d=${d}/>`}${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab('riwayat');}}/>`}${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:12}}><b>Riwayat Kunjungan Saya</b><span class="mut">${mine.length} data</span></div><${Tbl} list=${mine} rc=${setRc} act=${actR}/></div>`}</div>`}
+  ${me.role==='koordinator'&&html`<div style=${{marginTop:12}}><div class="tabs">${korTabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}</div>${tab==='mon'&&html`<${Coord} d=${d}/>`}${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab('riwayat');}}/>`}${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:12}}><b>Riwayat Kunjungan Saya</b><span class="mut">${mine.length} data</span></div><${Tbl} list=${mine} rc=${setRc} act=${actR}/></div>`}</div>`}
   ${(me.role==='owner'||me.role==='spv')&&html`<div><div class="tabs">${tabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}<button class="x" onClick=${()=>exportCsv(d.k,d.div)}>Ekspor CSV</button></div>
-    ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='rkp'&&html`<${Rekap} d=${d}/>`}${tab==='kun'&&html`<${Kun} d=${d} reload=${reload} canV=${me.role==='owner'}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab('riwayat');}}/>`}${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:12}}><b>Riwayat Kunjungan Saya</b><span class="mut">${mine.length} data</span></div><${Tbl} list=${mine} rc=${setRc} act=${actR}/></div>`}</div>`}
+    ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}${tab==='rkp'&&html`<${Rekap} d=${d}/>`}${tab==='kun'&&html`<${Kun} d=${d} reload=${reload} canV=${me.role==='owner'}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab('riwayat');}}/>`}${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:12}}><b>Riwayat Kunjungan Saya</b><span class="mut">${mine.length} data</span></div><${Tbl} list=${mine} rc=${setRc} act=${actR}/></div>`}</div>`}
   </div>
   ${isR&&html`<nav class="nav">${nav.map(([k,l,p])=>html`<button key=${k} class=${(tab===k?'a ':'')+(k==='lapor'?'fab':'')} onClick=${()=>setTab(k)}><span class="ni"><${Ic} d=${p}/></span>${l}</button>`)}</nav>`}
   ${rc&&html`<${Receipt} v=${rc} lem=${d.lem} jpg=${me.role!=='owner'} onClose=${()=>setRc(null)}/>`}</div>`;
