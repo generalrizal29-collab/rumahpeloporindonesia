@@ -305,33 +305,43 @@ function Tbl({list,act,rc,dv,pr}){
   return html`<div class="list">${list.length?list.map(v=>{const si=SI[v.status]||SI.Prospek,rl=rlOf(v.relawan_id);return html`<div class=${'it'+(v.nominal?' hv':'')} key=${v.id}>
     <span class=${'av '+si[1]}><${Ic} d=${si[0]}/></span>
     <div class="mn"><b class="nm">${v.donatur_nama}</b>
-    <div class="sub">${tglUI(tgl(v))}${v.relawan&&v.relawan.nama?' · '+v.relawan.nama+(dv&&dv(v.relawan.divisi_id)?' ('+dv(v.relawan.divisi_id)+')':''):''}${rl?html`<span class="rl">${rl}</span>`:''}${v.metode?' · '+v.metode:''}</div>
+    <div class="sub">${tglUI(tgl(v))}${v.relawan&&v.relawan.nama?' · '+v.relawan.nama+(dv&&dv(v.relawan.divisi_id)?' ('+dv(v.relawan.divisi_id)+')':''):''}${rl?html`<span class="rl">${rl}</span>`:''}${v.metode?' · '+v.metode:''}${v.dibuat_oleh&&v.dibuat_oleh!==v.relawan_id?html`<span class="rl">Diinput owner</span>`:''}</div>
     <div class="ft"><div class="bd2"><span class="badge St">${v.status}</span>${v.verif_status&&html`<span class=${'badge '+v.verif_status}>${v.verif_status}</span>`}</div>
     ${(act||rc)&&html`<div class="ac">${act&&act(v)}${rc&&isV(v)&&html`<button class="btn s o" onClick=${()=>rc(v)}>Kuitansi</button>`}</div>`}</div></div>
     ${v.nominal?html`<b class="am">${Rp(v.nominal)}</b>`:''}</div>`;}):html`<div class="empty card"><span class="eic"><${Ic} d=${P.inbox} s=${30}/></span><b>Belum ada data</b><div>Data kunjungan akan muncul di sini.</div></div>`}</div>`;
 }
 
 function Form({me,d,reload,done,pre}){
-  const init={did:'',nama:'',hp:'',status:'Prospek',nominal:'',kat:'',metode:'Cash',file:null,cat:''};
+  const ow=me.role==='owner';
+  const init={who:'',tgl:'',ver:false,did:'',nama:'',hp:'',status:'Prospek',nominal:'',kat:'',metode:'Cash',file:null,cat:''};
   const [f,setF]=useState({...init,did:pre||''}),[busy,setBusy]=useState(false);
   const u=(k,v)=>setF(s=>({...s,[k]:v}));const ok=f.status==='Berhasil';
+  const who=ow?f.who:me.id,donors=ow?d.don.filter(x=>x.relawan_id===f.who):d.don;
+  const team=d.prof.filter(p=>p.role!=='owner'&&p.aktif).sort((a,b)=>(a.role===b.role?0:['spv','koordinator','relawan'].indexOf(a.role)-['spv','koordinator','relawan'].indexOf(b.role))||a.nama.localeCompare(b.nama));
+  const today=new Date(Date.now()+7*36e5).toISOString().slice(0,10);
   const save=async()=>{
+    if(ow&&!f.who)return alert('Pilih anggota tim yang diinput');
+    if(ow&&f.tgl&&f.tgl>today)return alert('Tanggal kunjungan tidak boleh di masa depan');
     let did=f.did,nama=f.nama.trim();if(did)nama=d.don.find(x=>x.id===did).nama;
     if(!nama)return alert('Pilih atau isi nama donatur');
     if(ok){if(!(+f.nominal>0))return alert('Nominal wajib diisi');if(!f.kat)return alert('Pilih kategori');if(f.metode!=='Cash'&&!f.file)return alert('Upload bukti pembayaran');}
     setBusy(true);
     try{
-      if(!did){const r=await sb.from('donatur').insert({nama,no_hp:f.hp||null}).select().single();if(r.error)throw r.error;did=r.data.id;}
+      if(!did){const r=await sb.from('donatur').insert(Object.assign({nama,no_hp:f.hp||null},ow?{relawan_id:who}:{})).select().single();if(r.error)throw r.error;did=r.data.id;}
       let path=null;
-      if(ok&&f.metode!=='Cash'&&f.file){const blob=await compressImg(f.file);path=me.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,6)+'.jpg';const r=await sb.storage.from('bukti').upload(path,blob,{contentType:'image/jpeg'});if(r.error)throw r.error;}
-      const r=await sb.from('kunjungan').insert({donatur_id:did,donatur_nama:nama,status:f.status,catatan:f.cat||null,nominal:ok?+f.nominal:0,kategori_id:ok?+f.kat:null,metode:ok?f.metode:null,bukti_path:ok?path:null});
+      if(ok&&f.metode!=='Cash'&&f.file){const blob=await compressImg(f.file);path=who+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,6)+'.jpg';const r=await sb.storage.from('bukti').upload(path,blob,{contentType:'image/jpeg'});if(r.error)throw r.error;}
+      const row=Object.assign({donatur_id:did,donatur_nama:nama,status:f.status,catatan:f.cat||null,nominal:ok?+f.nominal:0,kategori_id:ok?+f.kat:null,metode:ok?f.metode:null,bukti_path:ok?path:null},ow?{relawan_id:who}:{},ow&&f.tgl?{created_at:new Date(f.tgl+'T12:00:00+07:00').toISOString()}:{});
+      const r=await sb.from('kunjungan').insert(row).select('id').single();
       if(r.error)throw r.error;
+      if(ow&&ok&&f.ver){const v=await sb.from('kunjungan').update({verif_status:'Verified'}).eq('id',r.data.id);if(v.error)alert('Tersimpan, tetapi gagal memverifikasi: '+v.error.message);}
       setF(init);reload();done();
     }catch(e){err(e);}
     setBusy(false);
   };
-  return html`<div><div class="card"><b>Lapor Kunjungan Baru</b><div class="mut">Isi data kunjungan Anda.</div>
-  <label>Donatur</label><select value=${f.did} onChange=${e=>u('did',e.target.value)}><option value="">+ Donatur baru</option>${d.don.map(x=>html`<option key=${x.id} value=${x.id}>${x.nama}</option>`)}</select>
+  return html`<div><div class="card"><b>${ow?'Input Kunjungan atas Nama Tim':'Lapor Kunjungan Baru'}</b><div class="mut">${ow?'Catat kunjungan dan donasi yang dilaporkan lewat chat atau telepon. Data tercatat milik anggota yang dipilih.':'Isi data kunjungan Anda.'}</div>
+  ${ow&&html`<div><label>Atas nama</label><select value=${f.who} onChange=${e=>setF(s=>({...s,who:e.target.value,did:'',nama:'',hp:''}))}><option value="">Pilih anggota tim...</option>${team.map(p=>html`<option key=${p.id} value=${p.id}>${p.nama} (${ROLE_LBL[p.role]})</option>`)}</select>
+  <label>Tanggal kunjungan (opsional)</label><input type="date" max=${today} value=${f.tgl} onChange=${e=>u('tgl',e.target.value)}/><div class="mut" style=${{marginTop:4}}>Kosongkan untuk memakai waktu sekarang.</div></div>`}
+  <label>Donatur</label><select value=${f.did} disabled=${ow&&!f.who} onChange=${e=>u('did',e.target.value)}><option value="">+ Donatur baru</option>${donors.map(x=>html`<option key=${x.id} value=${x.id}>${x.nama}</option>`)}</select>
   ${!f.did&&html`<div><input placeholder="Nama donatur" value=${f.nama} onInput=${e=>u('nama',e.target.value)}/><input placeholder="No. HP (opsional)" value=${f.hp} onInput=${e=>u('hp',e.target.value)}/></div>`}
   <label>Status Kunjungan</label><div class="seg c2">${STATUS.map(s=>html`<button key=${s} class=${f.status===s?'a':''} onClick=${()=>u('status',s)}>${s}</button>`)}</div></div>
   ${ok&&html`<div class="card"><b>Detail Donasi</b>
@@ -341,7 +351,8 @@ function Form({me,d,reload,done,pre}){
   ${f.metode.startsWith('Transfer')&&html`<div class="note">Rekening: ${d.rek.filter(r=>r.aktif&&f.metode.endsWith(r.bank)).map(r=>r.bank+' '+r.no_rek+' a.n. '+r.atas_nama).join(' | ')||'-'}</div>`}
   ${f.metode!=='Cash'&&html`<div><label>Bukti Pembayaran</label><label class="drop"><input type="file" accept="image/*" hidden onChange=${e=>u('file',e.target.files[0]||null)}/><${Ic} d=${P.camera} s=${22}/><span>${f.file?f.file.name:'Ketuk untuk memilih foto bukti'}</span></label></div>`}</div>`}
   <div class="card"><label style=${{marginTop:0}}>Catatan (opsional)</label><input value=${f.cat} onInput=${e=>u('cat',e.target.value)}/>
-  <div style=${{marginTop:14}}><button class="btn" style=${{width:'100%'}} disabled=${busy} onClick=${save}>${busy?'Menyimpan...':'Kirim Laporan'}</button></div></div></div>`;
+  ${ow&&ok&&html`<label class="chk" style=${{display:'flex',gap:8,alignItems:'center',marginTop:12}}><input type="checkbox" style=${{width:20,height:20,padding:0,margin:0,flex:'none',minHeight:0}} checked=${f.ver} onChange=${e=>u('ver',e.target.checked)}/><span>Langsung tandai Verified (kuitansi dibuat otomatis)</span></label>`}
+  <div style=${{marginTop:14}}><button class="btn" style=${{width:'100%'}} disabled=${busy} onClick=${save}>${busy?'Menyimpan...':ow?'Simpan Kunjungan':'Kirim Laporan'}</button></div></div></div>`;
 }
 
 const COL=['#2563eb','#0ea5e9','#16a34a','#a855f7','#ef4444'];
@@ -672,7 +683,7 @@ function Main({me,out}){
   const mine=d.k.filter(v=>v.relawan_id===me.id);
   const selfTabs=[['lapor','Lapor Kunjungan'],['riwayat','Riwayat Saya']];
   const korTabs=[['mon','Tim'],['klas','Klasemen'],...selfTabs];
-  const tabs=me.role==='owner'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan'],['klas','Klasemen'],['ver','Verifikasi'],['mst','Master Data'],['tim','Pengguna']]:me.role==='spv'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan'],['klas','Klasemen'],...selfTabs]:[];
+  const tabs=me.role==='owner'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan'],['lapor','Input Kunjungan'],['klas','Klasemen'],['ver','Verifikasi'],['mst','Master Data'],['tim','Pengguna']]:me.role==='spv'?[['dash','Dashboard'],['rkp','Rekap Tim'],['kun','Kunjungan'],['klas','Klasemen'],...selfTabs]:[];
   const isR=me.role==='relawan',first=(me.nama||'').split(' ')[0];
   useEffect(()=>{if(tab!=='lapor')setPre('');},[tab]);
   const lastBy={};d.k.forEach(v=>{if(v.donatur_id&&!lastBy[v.donatur_id])lastBy[v.donatur_id]=v.id;});
@@ -702,7 +713,7 @@ function Main({me,out}){
   ${!isR&&html`<div class="hello"><span class="avt">${ini(me.nama)}</span><div><b>Halo, ${first}</b><div class="mut">Pantau kunjungan dan donasi tim hari ini.</div></div></div>`}
   ${me.role==='koordinator'&&html`<div style=${{marginTop:12}}><div class="tabs">${korTabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}</div>${tab==='mon'&&html`<${Coord} d=${d}/>`}${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab('riwayat');}}/>`}${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:12}}><b>Riwayat Kunjungan Saya</b><span class="mut">${mine.length} data</span></div><${Tbl} list=${mine} rc=${setRc} act=${actR}/></div>`}</div>`}
   ${(me.role==='owner'||me.role==='spv')&&html`<div><div class="tabs">${tabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}<button class="x" onClick=${()=>exportCsv(d.k,d.div)}>Ekspor CSV</button></div>
-    ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}${tab==='rkp'&&html`<${Rekap} d=${d}/>`}${tab==='kun'&&html`<${Kun} d=${d} reload=${reload} canV=${me.role==='owner'}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab('riwayat');}}/>`}${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:12}}><b>Riwayat Kunjungan Saya</b><span class="mut">${mine.length} data</span></div><${Tbl} list=${mine} rc=${setRc} act=${actR}/></div>`}</div>`}
+    ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}${tab==='rkp'&&html`<${Rekap} d=${d}/>`}${tab==='kun'&&html`<${Kun} d=${d} reload=${reload} canV=${me.role==='owner'}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab(me.role==='owner'?'kun':'riwayat');}}/>`}${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:12}}><b>Riwayat Kunjungan Saya</b><span class="mut">${mine.length} data</span></div><${Tbl} list=${mine} rc=${setRc} act=${actR}/></div>`}</div>`}
   </div>
   ${isR&&html`<nav class="nav">${nav.map(([k,l,p])=>html`<button key=${k} class=${(tab===k?'a ':'')+(k==='lapor'?'fab':'')} onClick=${()=>setTab(k)}><span class="ni"><${Ic} d=${p}/></span>${l}</button>`)}</nav>`}
   ${rc&&html`<${Receipt} v=${rc} lem=${d.lem} jpg=${me.role!=='owner'} onClose=${()=>setRc(null)}/>`}</div>`;
