@@ -425,11 +425,17 @@ function Kun({d,reload,canV}){
 }
 
 function Master({d,reload}){
-  const [nc,setNc]=useState(''),[nd,setNd]=useState(''),[tf,setTf]=useState({nama:'',nominal:'',mulai:hariWIB(),sampai:'',divisi_id:''}),[te,setTe]=useState(null),[rk,setRk]=useState({bank:'BNI',no_rek:'',atas_nama:''}),[lm,setLm]=useState(d.lem||{nama:'Rumah Pelopor Indonesia',logo_url:'',alamat:''});
+  const [nc,setNc]=useState(''),[nd,setNd]=useState(''),[np,setNp]=useState(''),[pe,setPe]=useState(null),[tf,setTf]=useState({nama:'',nominal:'',mulai:hariWIB(),sampai:'',divisi_id:''}),[te,setTe]=useState(null),[rk,setRk]=useState({bank:'BNI',no_rek:'',atas_nama:''}),[lm,setLm]=useState(d.lem||{nama:'Rumah Pelopor Indonesia',logo_url:'',alamat:''});
   const q=async p=>{const r=await p;if(r.error)err(r.error);else reload();};
   return html`<div><div class="card"><b>Divisi Relawan</b><div class="mut" style=${{fontSize:12}}>Tanda divisi pada relawan. Divisi nonaktif tidak muncul di pilihan baru.</div>
     ${d.div.map(c=>html`<div key=${c.id} style=${{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid var(--line,#eee)'}}><span>${c.nama} ${!c.aktif&&'(nonaktif)'}</span><span style=${{display:'flex',gap:6}}><button class="btn s o" onClick=${()=>{const n=prompt('Nama divisi',c.nama);if(n&&n.trim()&&n.trim()!==c.nama)q(sb.from('divisi').update({nama:n.trim()}).eq('id',c.id));}}>Ubah</button><button class="btn s o" onClick=${()=>q(sb.from('divisi').update({aktif:!c.aktif}).eq('id',c.id))}>${c.aktif?'Nonaktifkan':'Aktifkan'}</button></span></div>`)}
     <div style=${{display:'flex',gap:6,marginTop:8}}><input placeholder="Divisi baru" value=${nd} onInput=${e=>setNd(e.target.value)}/><button class="btn s" onClick=${()=>{if(nd.trim()){q(sb.from('divisi').insert({nama:nd.trim()}));setNd('');}}}>Tambah</button></div></div>
+  <div class="card"><b>Prodi</b><div class="mut" style=${{fontSize:12}}>Label Prodi pada anggota tim (SPV, Korel, Relawan). Nama bisa diubah, prodi baru bisa ditambah. Prodi nonaktif tidak muncul di pilihan baru, label lama tetap tercatat.</div>
+    ${d.prodi.map(c=>html`<div key=${c.id} style=${{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid var(--bd)'}}>
+      ${pe&&pe.id===c.id?html`<span style=${{display:'flex',gap:6,flex:1}}><input style=${{marginTop:0}} value=${pe.nama} onInput=${e=>setPe({id:c.id,nama:e.target.value})}/><button class="btn s" onClick=${()=>{if(pe.nama.trim()){q(sb.from('prodi').update({nama:pe.nama.trim()}).eq('id',c.id));setPe(null);}}}>Simpan</button><button class="btn s o" onClick=${()=>setPe(null)}>Batal</button></span>`
+      :html`<span>${c.nama} ${!c.aktif&&'(nonaktif)'}</span><span style=${{display:'flex',gap:6}}><button class="btn s o" onClick=${()=>setPe({id:c.id,nama:c.nama})}>Ubah</button><button class="btn s o" onClick=${()=>q(sb.from('prodi').update({aktif:!c.aktif}).eq('id',c.id))}>${c.aktif?'Nonaktifkan':'Aktifkan'}</button></span>`}</div>`)}
+    ${!d.prodi.length&&html`<div class="mut" style=${{marginTop:8}}>Belum ada prodi. Jalankan schema-prodi-rekap.sql di Supabase SQL Editor.</div>`}
+    <div style=${{display:'flex',gap:6,marginTop:8}}><input placeholder="Prodi baru" value=${np} onInput=${e=>setNp(e.target.value)}/><button class="btn s" onClick=${()=>{if(np.trim()){q(sb.from('prodi').insert({nama:np.trim()}));setNp('');}}}>Tambah</button></div></div>
   <div class="card" id="tf-card"><b>Target Penghimpunan</b><div class="mut" style=${{fontSize:12}}>Progress dihitung dari donasi Verified antara tanggal mulai dan tanggal target, dan tampil di dashboard semua peran. Kosongkan divisi untuk target seluruh lembaga.</div>
     ${(d.tg||[]).map(t=>html`<div key=${t.id} style=${{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid var(--bd)'}}><span>${t.nama} · ${Rp(t.nominal)}<div class="mut" style=${{fontSize:12}}>${tglUI(t.mulai)} - ${tglUI(t.sampai)}${t.divisi_id?' · '+divNama(d.div,t.divisi_id):''} ${!t.aktif&&'(nonaktif)'}</div></span><span style=${{display:'flex',gap:6,flexWrap:'wrap'}}>
       <button class="btn s o" onClick=${()=>{setTf({nama:t.nama,nominal:String(t.nominal),mulai:t.mulai,sampai:t.sampai,divisi_id:t.divisi_id?String(t.divisi_id):''});setTe(t.id);const el=document.getElementById('tf-card');if(el)el.scrollIntoView({behavior:'smooth'});}}>Ubah</button>
@@ -488,10 +494,11 @@ function Team({d,reload}){
     ${rp&&html`<div class="card"><b>Password baru ${rp.nama}</b>: <code>${rp.password}</code> <button class="btn s o" onClick=${()=>setRp(null)}>Tutup</button></div>`}
     <div class="card sc"><b>Pengguna (${list.length})</b>
       <div class="row2"><div><select value=${fr} onChange=${e=>{setFr(e.target.value);setN(100);}}><option value="">Semua peran</option><option value="spv">SPV</option><option value="koordinator">Korel</option><option value="relawan">Relawan</option></select></div><div><input placeholder="Cari nama" value=${qs} onInput=${e=>{setQs(e.target.value);setN(100);}}/></div></div>
-      <table><thead><tr><th>Nama</th><th>Peran</th><th>Atasan</th><th>Divisi</th><th>Status</th><th></th></tr></thead><tbody>
+      <table><thead><tr><th>Nama</th><th>Peran</th><th>Atasan</th><th>Divisi</th><th>Prodi</th><th>Status</th><th></th></tr></thead><tbody>
       ${list.slice(0,n).map(p=>html`<tr key=${p.id}><td>${p.nama}<div class="mut" style=${{fontSize:11}}>${p.no_hp||''}</div></td><td>${ROLE_LBL[p.role]}</td>
         <td>${p.role==='relawan'?html`<select value=${p.koordinator_id||''} onChange=${e=>upd(p.id,{koordinator_id:e.target.value||null})}><option value="">-</option>${koors.map(k=>html`<option key=${k.id} value=${k.id}>${k.nama}</option>`)}</select>`:p.role==='koordinator'?html`<select value=${p.spv_id||''} onChange=${e=>upd(p.id,{spv_id:e.target.value||null})}><option value="">-</option>${spvs.map(k=>html`<option key=${k.id} value=${k.id}>${k.nama}</option>`)}</select>`:'-'}</td>
         <td>${true?html`<select value=${p.divisi_id?String(p.divisi_id):''} onChange=${e=>upd(p.id,{divisi_id:e.target.value?+e.target.value:null})}><option value="">-</option>${d.div.filter(x=>x.aktif||x.id===p.divisi_id).map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select>`:'-'}</td>
+        <td><select value=${p.prodi_id?String(p.prodi_id):''} onChange=${e=>upd(p.id,{prodi_id:e.target.value?+e.target.value:null})}><option value="">-</option>${d.prodi.filter(x=>x.aktif||x.id===p.prodi_id).map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></td>
         <td><span class=${'badge '+(p.aktif?'Verified':'Rejected')}>${p.aktif?'aktif':'nonaktif'}</span></td>
         <td style=${{whiteSpace:'nowrap'}}><button class="btn s o" onClick=${()=>toggle(p)}>${p.aktif?'Nonaktifkan':'Aktifkan'}</button> <button class="btn s o" onClick=${()=>reset(p)}>Reset PW</button></td></tr>`)}
       </tbody></table>
@@ -523,7 +530,7 @@ const sumBy=(l,k)=>l.reduce((a,r)=>a+(+r[k]||0),0);
 const dlCsv=(name,rows)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+rows.map(r=>r.map(csvCell).join(',')).join('\n')],{type:'text/csv'}));a.download=name;a.click();};
 
 function Rekap({d}){
-  const [pk,setPk]=useState('7'),[dv,setDv]=useState(''),[cd,setCd]=useState(''),[cs,setCs]=useState(''),[rows,setRows]=useState(null),[ld,setLd]=useState(false),[er,setEr]=useState(''),[open,setOpen]=useState({}),[fl,setFl]=useState('hari'),[nIdle,setNIdle]=useState(50),[tick,setTick]=useState(0);
+  const [pk,setPk]=useState('7'),[dv,setDv]=useState(''),[pf,setPf]=useState(''),[fr,setFr]=useState(''),[cd,setCd]=useState(''),[cs,setCs]=useState(''),[rows,setRows]=useState(null),[ld,setLd]=useState(false),[er,setEr]=useState(''),[open,setOpen]=useState({}),[fl,setFl]=useState('hari'),[nIdle,setNIdle]=useState(50),[tick,setTick]=useState(0);
   const today=hariWIB();
   const [dari,sampai]=pk==='1'?[today,today]:pk==='7'?[addDays(today,-6),today]:pk==='30'?[addDays(today,-29),today]:[cd,cs];
   const valid=!!dari&&!!sampai&&dari<=sampai&&(Date.parse(sampai)-Date.parse(dari))/864e5<=365;
@@ -534,43 +541,51 @@ function Rekap({d}){
     let off=false;setLd(true);setEr('');
     sb.rpc('rekap_relawan',{p_dari:dari,p_sampai:sampai}).then(r=>{
       if(off)return;setLd(false);
-      if(r.error)setEr(/rekap_relawan/.test(r.error.message||'')?'Fungsi rekap belum terpasang/terbaru di database. Jalankan schema-migrasi-spv.sql di Supabase SQL Editor.':(r.error.message||'Gagal memuat rekap'));
+      if(r.error)setEr(/rekap_relawan/.test(r.error.message||'')?'Fungsi rekap belum terpasang/terbaru di database. Jalankan schema-prodi-rekap.sql di Supabase SQL Editor.':(r.error.message||'Gagal memuat rekap'));
       else setRows(r.data||[]);
     });
     return()=>{off=true;};
   },[dari,sampai,valid,sig,tick]);
-  const R=(rows||[]).filter(r=>!dv||String(r.divisi_id||'')===dv);
+  const R=(rows||[]).map(r=>({...r,role:r.role||'relawan'})).filter(r=>(!dv||String(r.divisi_id||'')===dv)&&(!pf||String(r.prodi_id||'')===pf)&&(!fr||r.role===fr));
   const gk=g=>g.id||'none';
-  const groups=[...d.prof.filter(p=>p.role==='koordinator').map(k=>({id:k.id,nama:k.nama,off:!k.aktif,spv:((d.prof.find(p=>p.id===k.spv_id))||{}).nama||''})),{id:null,nama:'Tanpa koordinator',off:false}].map(g=>{
-    const l=R.filter(r=>(r.koordinator_id||null)===g.id).sort((a,b)=>(a.kunjungan>0)-(b.kunjungan>0)||a.nama.localeCompare(b.nama));
+  const korelG=d.prof.filter(p=>p.role==='koordinator').map(k=>({id:k.id,nama:k.nama,off:!k.aktif,spv:((d.prof.find(p=>p.id===k.spv_id))||{}).nama||''}));
+  const groups=[...korelG,{id:null,nama:'Tanpa koordinator',off:false},{id:'spv',nama:'SPV',off:false}].map(g=>{
+    const l=R.filter(r=>g.id==='spv'?r.role==='spv':g.id===null?(r.role==='relawan'&&!r.koordinator_id):(r.relawan_id===g.id||(r.role==='relawan'&&r.koordinator_id===g.id))).sort((a,b)=>(a.kunjungan>0)-(b.kunjungan>0)||a.nama.localeCompare(b.nama));
     return {...g,l,gerak:l.filter(r=>r.kunjungan>0).length};
-  }).filter(g=>g.l.length||(!dv&&g.id&&!g.off));
+  }).filter(g=>g.l.length||(!dv&&!pf&&!fr&&g.id&&g.id!=='spv'&&!g.off));
   const tot=R.length,hari=R.filter(r=>r.hari_ini>0).length,pct=tot?Math.round(hari*100/tot):0,gerakP=R.filter(r=>r.kunjungan>0).length;
   const koorNama=id=>{const k=id&&d.prof.find(p=>p.id===id);return k?k.nama:'-';};
+  const atasan=r=>r.role==='relawan'?koorNama(r.koordinator_id):r.role==='koordinator'?koorNama(r.spv_id):'-';
+  const prn=id=>divNama(d.prodi,id);
+  const rl=r=>html`<span class="rl">${ROLE_LBL[r.role]}</span>`;
   const dvn=id=>divNama(d.div,id);
   const FL=[['hari','Belum bergerak hari ini'],['3','Tidak lapor ≥ 3 hari'],['7','Tidak lapor ≥ 7 hari'],['nol','Belum pernah lapor']];
   const pass=r=>fl==='hari'?r.hari_ini===0:fl==='nol'?!r.terakhir:(!r.terakhir||umurHari(r.terakhir)>=+fl);
   const idle=R.filter(pass).sort((a,b)=>a.terakhir===b.terakhir?a.nama.localeCompare(b.nama):(a.terakhir||'')<(b.terakhir||'')?-1:1);
-  const exp=()=>dlCsv('rpi-rekap-relawan-'+dari+'_'+sampai+'.csv',[['Koordinator','Relawan','Divisi','No HP','Kunjungan','Berhasil','Menunggu Verifikasi','Dana Verified','Kunjungan Hari Ini','Terakhir Lapor','Status Periode'],...groups.flatMap(g=>g.l.map(r=>[g.nama,r.nama,dvn(r.divisi_id),r.no_hp,r.kunjungan,r.berhasil,r.menunggu,r.dana_verified,r.hari_ini,lastTxt(r.terakhir),r.kunjungan>0?'Bergerak':'Belum bergerak']))]);
+  const exp=()=>dlCsv('rpi-rekap-tim-'+dari+'_'+sampai+'.csv',[['Kelompok','Nama','Peran','Divisi','Prodi','No HP','Kunjungan','Berhasil','Menunggu Verifikasi','Dana Verified','Kunjungan Hari Ini','Terakhir Lapor','Status Periode'],...groups.flatMap(g=>g.l.map(r=>[g.nama,r.nama,ROLE_LBL[r.role],dvn(r.divisi_id),prn(r.prodi_id),r.no_hp,r.kunjungan,r.berhasil,r.menunggu,r.dana_verified,r.hari_ini,lastTxt(r.terakhir),r.kunjungan>0?'Bergerak':'Belum bergerak']))]);
   const mut={color:'var(--mut)',fontSize:12};
   const periodTxt=dari&&sampai?(dari===sampai?dari:dari+' s/d '+sampai):'';
   const dvRows=[...d.div.map(x=>({id:x.id,nama:x.nama})),{id:null,nama:'Tanpa divisi'}].map(x=>{const l=R.filter(r=>(r.divisi_id||null)===x.id);return{...x,l,gerak:l.filter(r=>r.kunjungan>0).length};}).filter(x=>x.l.length);
-  const divCard=html`<div class="card sc"><b>Rekap per Divisi</b> <span style=${mut}>${periodTxt}</span><table><thead><tr><th>Divisi</th><th>Relawan</th><th>Bergerak</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>${dvRows.map(x=>html`<tr key=${x.nama}><td>${x.nama}</td><td>${x.l.length}</td><td>${x.gerak}</td><td>${sumBy(x.l,'kunjungan')}</td><td>${sumBy(x.l,'berhasil')}</td><td>${Rp(sumBy(x.l,'dana_verified'))}</td></tr>`)}</tbody></table></div>`;
+  const prRows=[...d.prodi.map(x=>({id:x.id,nama:x.nama})),{id:null,nama:'Tanpa prodi'}].map(x=>{const l=R.filter(r=>(r.prodi_id||null)===x.id);return{...x,l,gerak:l.filter(r=>r.kunjungan>0).length};}).filter(x=>x.l.length);
+  const prCard=d.prodi.length?html`<div class="card sc"><b>Rekap per Prodi</b> <span style=${mut}>${periodTxt}</span><table><thead><tr><th>Prodi</th><th>Anggota</th><th>Bergerak</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>${prRows.map(x=>html`<tr key=${x.nama}><td>${x.nama}</td><td>${x.l.length}</td><td>${x.gerak}</td><td>${sumBy(x.l,'kunjungan')}</td><td>${sumBy(x.l,'berhasil')}</td><td>${Rp(sumBy(x.l,'dana_verified'))}</td></tr>`)}</tbody></table></div>`:null;
+  const divCard=html`<div class="card sc"><b>Rekap per Divisi</b> <span style=${mut}>${periodTxt}</span><table><thead><tr><th>Divisi</th><th>Anggota</th><th>Bergerak</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>${dvRows.map(x=>html`<tr key=${x.nama}><td>${x.nama}</td><td>${x.l.length}</td><td>${x.gerak}</td><td>${sumBy(x.l,'kunjungan')}</td><td>${sumBy(x.l,'berhasil')}</td><td>${Rp(sumBy(x.l,'dana_verified'))}</td></tr>`)}</tbody></table></div>`;
   return html`<div>
-  <div class="card" style=${{maxWidth:260}}><label>Filter divisi</label><select value=${dv} onChange=${e=>setDv(e.target.value)}><option value="">Semua divisi</option>${d.div.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div>
+  <div class="card"><div class="row2"><div><label>Peran</label><select value=${fr} onChange=${e=>setFr(e.target.value)}><option value="">Semua (Relawan, Korel, SPV)</option><option value="relawan">Relawan</option><option value="koordinator">Korel</option><option value="spv">SPV</option></select></div>
+    <div><label>Divisi</label><select value=${dv} onChange=${e=>setDv(e.target.value)}><option value="">Semua divisi</option>${d.div.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div>
+    ${d.prodi.length>0&&html`<div><label>Prodi</label><select value=${pf} onChange=${e=>setPf(e.target.value)}><option value="">Semua prodi</option>${d.prodi.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div>`}</div></div>
   <div class="card"><b>Tracking Hari Ini</b> <span style=${mut}>${today} (WIB)</span> ${ld&&html`<span style=${mut}>· memuat…</span>`}
     ${er&&html`<div style=${{color:'#dc2626',margin:'8px 0'}}>${er}</div>`}
     ${rows===null&&!er?html`<div style=${{...mut,marginTop:8}}>Memuat rekap…</div>`:html`<div>
     <div style=${{height:10,background:'var(--bd)',borderRadius:99,margin:'10px 0',overflow:'hidden'}}><div style=${{width:pct+'%',height:'100%',background:'#16a34a'}}></div></div>
-    <div><b style=${{fontSize:20,color:'var(--pr)'}}>${hari}</b> dari ${tot} relawan sudah bergerak (${pct}%) · <b style=${{color:'#dc2626'}}>${tot-hari}</b> belum melapor hari ini</div>
-    <div style=${{...mut,marginTop:4}}>“Bergerak” = sudah mengirim minimal 1 laporan kunjungan (status apa pun) hari ini. Hanya relawan aktif yang dihitung.</div></div>`}</div>
+    <div><b style=${{fontSize:20,color:'var(--pr)'}}>${hari}</b> dari ${tot} anggota sudah bergerak (${pct}%) · <b style=${{color:'#dc2626'}}>${tot-hari}</b> belum melapor hari ini</div>
+    <div style=${{...mut,marginTop:4}}>“Bergerak” = sudah mengirim minimal 1 laporan kunjungan (status apa pun) hari ini. Relawan, Korel, dan SPV yang aktif ikut dihitung.</div></div>`}</div>
 
-  <div class="card"><b>Relawan yang Perlu Diingatkan</b>
+  <div class="card"><b>Anggota yang Perlu Diingatkan</b>
     <div class="chips">${FL.map(([k,l])=>html`<button key=${k} class=${fl===k?'a':''} onClick=${()=>{setFl(k);setNIdle(50);}}>${l+' ('+R.filter(r=>k==='hari'?r.hari_ini===0:k==='nol'?!r.terakhir:(!r.terakhir||umurHari(r.terakhir)>=+k)).length+')'}</button>`)}</div>
-    <div class="sc"><table><thead><tr><th>Relawan</th><th>Koordinator</th><th>Divisi</th><th>Terakhir lapor</th><th>Hari ini</th><th></th></tr></thead><tbody>
-    ${idle.slice(0,nIdle).map(r=>html`<tr key=${r.relawan_id}><td>${r.nama}</td><td>${koorNama(r.koordinator_id)}</td><td>${dvn(r.divisi_id)||'-'}</td><td>${lastTxt(r.terakhir)}</td><td>${r.hari_ini}</td>
+    <div class="sc"><table><thead><tr><th>Nama</th><th>Atasan</th><th>Divisi</th><th>Prodi</th><th>Terakhir lapor</th><th>Hari ini</th><th></th></tr></thead><tbody>
+    ${idle.slice(0,nIdle).map(r=>html`<tr key=${r.relawan_id}><td>${r.nama} ${rl(r)}</td><td>${atasan(r)}</td><td>${dvn(r.divisi_id)||'-'}</td><td>${prn(r.prodi_id)||'-'}</td><td>${lastTxt(r.terakhir)}</td><td>${r.hari_ini}</td>
       <td>${waLink(r.no_hp)?html`<a class="btn s o" style=${{textDecoration:'none',display:'inline-block'}} href=${waLink(r.no_hp)} target="_blank" rel="noopener noreferrer">WA</a>`:'-'}</td></tr>`)}
-    ${!idle.length&&html`<tr><td colspan="6" style=${{color:'var(--mut)'}}>${rows===null?'Memuat…':'Tidak ada relawan pada kategori ini 🎉'}</td></tr>`}</tbody></table></div>
+    ${!idle.length&&html`<tr><td colspan="7" style=${{color:'var(--mut)'}}>${rows===null?'Memuat…':'Tidak ada anggota pada kategori ini 🎉'}</td></tr>`}</tbody></table></div>
     ${idle.length>nIdle&&html`<div style=${{textAlign:'center',marginTop:8}}><button class="btn s o" onClick=${()=>setNIdle(nIdle+50)}>Tampilkan lebih banyak (${idle.length-nIdle})</button></div>`}</div>
 
   <div class="card"><b>Rekap per Korel</b> <span style=${mut}>${periodTxt}</span>
@@ -578,19 +593,19 @@ function Rekap({d}){
       <button onClick=${()=>setTick(t=>t+1)}>Muat ulang</button><button onClick=${exp} disabled=${!groups.length}>Ekspor CSV</button></div>
     ${pk==='x'&&html`<div class="grid" style=${{gridTemplateColumns:'1fr 1fr',marginBottom:8}}><div><label>Dari tanggal</label><input type="date" value=${cd} onInput=${e=>setCd(e.target.value)}/></div><div><label>Sampai tanggal</label><input type="date" value=${cs} onInput=${e=>setCs(e.target.value)}/></div></div>`}
     ${!valid&&html`<div style=${{color:'#dc2626',fontSize:12,marginBottom:8}}>Pilih rentang tanggal yang valid (dari ≤ sampai, maksimal 1 tahun).</div>`}
-    <div class="grid g4" style=${{marginBottom:10}}>${[['Relawan aktif',tot],['Bergerak di periode',gerakP+' / '+tot],['Kunjungan',sumBy(R,'kunjungan')],['Berhasil',sumBy(R,'berhasil')],['Dana Verified',Rp(sumBy(R,'dana_verified'))]].map(([a,b])=>html`<div class="card" style=${{marginBottom:0}} key=${a}><div style=${mut}>${a}</div><div style=${{fontSize:16,fontWeight:800,color:'var(--pr)'}}>${b}</div></div>`)}</div>
-    <div style=${{...mut,marginBottom:6}}>Klik nama koordinator untuk melihat rincian relawannya.</div>
-    <div class="sc"><table><thead><tr><th>Koordinator</th><th>Relawan</th><th>Bergerak</th><th>Belum</th><th>%</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>
+    <div class="grid g4" style=${{marginBottom:10}}>${[['Anggota aktif',tot],['Bergerak di periode',gerakP+' / '+tot],['Kunjungan',sumBy(R,'kunjungan')],['Berhasil',sumBy(R,'berhasil')],['Dana Verified',Rp(sumBy(R,'dana_verified'))]].map(([a,b])=>html`<div class="card" style=${{marginBottom:0}} key=${a}><div style=${mut}>${a}</div><div style=${{fontSize:16,fontWeight:800,color:'var(--pr)'}}>${b}</div></div>`)}</div>
+    <div style=${{...mut,marginBottom:6}}>Klik nama kelompok untuk melihat rincian anggotanya. Korel dihitung bersama relawannya; SPV ada di kelompok SPV.</div>
+    <div class="sc"><table><thead><tr><th>Kelompok</th><th>Anggota</th><th>Bergerak</th><th>Belum</th><th>%</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>
     ${groups.map(g=>html`<${React.Fragment} key=${gk(g)}>
       <tr style=${{cursor:'pointer'}} onClick=${()=>setOpen(o=>({...o,[gk(g)]:!o[gk(g)]}))}>
         <td><b>${open[gk(g)]?'▾':'▸'} ${g.nama}</b>${g.spv&&html` <span class="mut">· SPV ${g.spv}</span>`}${g.off&&html` <span class="badge Rejected">nonaktif</span>`}</td><td>${g.l.length}</td><td>${g.gerak}</td><td>${g.l.length-g.gerak}</td>
         <td>${g.l.length?Math.round(g.gerak*100/g.l.length)+'%':'-'}</td><td>${sumBy(g.l,'kunjungan')}</td><td>${sumBy(g.l,'berhasil')}</td><td>${Rp(sumBy(g.l,'dana_verified'))}</td></tr>
       ${open[gk(g)]&&html`<tr><td colspan="8" style=${{padding:0}}><div class="sc" style=${{padding:'4px 8px 10px',background:'var(--prl)'}}>
-        ${g.l.length?html`<table><thead><tr><th>Relawan</th><th>Divisi</th><th>Status</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th><th>Terakhir lapor</th><th>Hari ini</th></tr></thead><tbody>
-        ${g.l.map(r=>html`<tr key=${r.relawan_id}><td>${r.nama}</td><td>${dvn(r.divisi_id)||'-'}</td><td><span class=${'badge '+(r.kunjungan>0?'Verified':'Rejected')}>${r.kunjungan>0?'Bergerak':'Belum bergerak'}</span></td><td>${r.kunjungan}</td><td>${r.berhasil}</td><td>${Rp(r.dana_verified)}</td><td>${lastTxt(r.terakhir)}</td><td>${r.hari_ini}</td></tr>`)}</tbody></table>`:html`<div style=${{...mut,padding:8}}>Belum ada relawan aktif di koordinator ini.</div>`}</div></td></tr>`}
+        ${g.l.length?html`<table><thead><tr><th>Nama</th><th>Divisi</th><th>Prodi</th><th>Status</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th><th>Terakhir lapor</th><th>Hari ini</th></tr></thead><tbody>
+        ${g.l.map(r=>html`<tr key=${r.relawan_id}><td>${r.nama} ${rl(r)}</td><td>${dvn(r.divisi_id)||'-'}</td><td>${prn(r.prodi_id)||'-'}</td><td><span class=${'badge '+(r.kunjungan>0?'Verified':'Rejected')}>${r.kunjungan>0?'Bergerak':'Belum bergerak'}</span></td><td>${r.kunjungan}</td><td>${r.berhasil}</td><td>${Rp(r.dana_verified)}</td><td>${lastTxt(r.terakhir)}</td><td>${r.hari_ini}</td></tr>`)}</tbody></table>`:html`<div style=${{...mut,padding:8}}>Belum ada anggota aktif di kelompok ini.</div>`}</div></td></tr>`}
     <//>`)}
     ${!groups.length&&html`<tr><td colspan="8" style=${{color:'var(--mut)'}}>${rows===null?'Memuat…':'Belum ada data'}</td></tr>`}
-    ${groups.length>0&&html`<tr style=${{fontWeight:700}}><td>Total</td><td>${tot}</td><td>${gerakP}</td><td>${tot-gerakP}</td><td>${tot?Math.round(gerakP*100/tot)+'%':'-'}</td><td>${sumBy(R,'kunjungan')}</td><td>${sumBy(R,'berhasil')}</td><td>${Rp(sumBy(R,'dana_verified'))}</td></tr>`}</tbody></table></div></div>${divCard}</div>`;
+    ${groups.length>0&&html`<tr style=${{fontWeight:700}}><td>Total</td><td>${tot}</td><td>${gerakP}</td><td>${tot-gerakP}</td><td>${tot?Math.round(gerakP*100/tot)+'%':'-'}</td><td>${sumBy(R,'kunjungan')}</td><td>${sumBy(R,'berhasil')}</td><td>${Rp(sumBy(R,'dana_verified'))}</td></tr>`}</tbody></table></div></div>${divCard}${prCard}</div>`;
 }
 
 function Targets({d}){
@@ -662,13 +677,13 @@ function Klasemen({d,me}){
 
 function Main({me,out}){
   const [pre,setPre]=useState('');
-  const [d,setD]=useState({k:[],cat:[],rek:[],lem:null,don:[],prof:[],div:[],tg:[],tp:{}}),[tab,setTab]=useState(me.role==='owner'||me.role==='spv'?'dash':me.role==='koordinator'?'mon':'home'),[rc,setRc]=useState(null),[ban,setBan]=useState(true),[inst,setInst]=useState(false);
+  const [d,setD]=useState({k:[],cat:[],rek:[],lem:null,don:[],prof:[],div:[],tg:[],tp:{},prodi:[]}),[tab,setTab]=useState(me.role==='owner'||me.role==='spv'?'dash':me.role==='koordinator'?'mon':'home'),[rc,setRc]=useState(null),[ban,setBan]=useState(true),[inst,setInst]=useState(false);
   const reload=useCallback(async()=>{
-    const [k,cat,rek,lem,don,prof,dvs,tg,tp]=await Promise.all([
+    const [k,cat,rek,lem,don,prof,dvs,tg,tp,prd]=await Promise.all([
       KQ(),
       sb.from('kategori').select('*').order('id'),sb.from('rekening').select('*').order('id'),sb.from('lembaga').select('*').eq('id',1).maybeSingle(),
-      sb.from('donatur').select('*').order('nama'),sb.from('profiles').select('*').order('nama'),sb.from('divisi').select('*').order('nama'),sb.from('target').select('*').order('sampai'),sb.rpc('target_progress')]);
-    setD({k:k.data||[],cat:cat.data||[],rek:rek.data||[],lem:lem.data,don:don.data||[],prof:prof.data||[],div:dvs.data||[],tg:tg.data||[],tp:Object.fromEntries((tp.data||[]).map(x=>[x.id,+x.terkumpul]))});
+      sb.from('donatur').select('*').order('nama'),sb.from('profiles').select('*').order('nama'),sb.from('divisi').select('*').order('nama'),sb.from('target').select('*').order('sampai'),sb.rpc('target_progress'),sb.from('prodi').select('*').order('id')]);
+    setD({k:k.data||[],cat:cat.data||[],rek:rek.data||[],lem:lem.data,don:don.data||[],prof:prof.data||[],div:dvs.data||[],tg:tg.data||[],tp:Object.fromEntries((tp.data||[]).map(x=>[x.id,+x.terkumpul])),prodi:prd.error?[]:(prd.data||[])});
   },[]);
   useEffect(()=>{
     reload();
@@ -708,7 +723,7 @@ function Main({me,out}){
     ${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab('riwayat');}}/>`}
     ${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:0}}><b>Riwayat Kunjungan</b><span class="mut">${d.k.length} data</span></div><${Tbl} list=${d.k} rc=${setRc} act=${actR}/></div>`}
     ${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}
-    ${tab==='akun'&&html`<div><div class="card prof"><span class="avt big">${ini(me.nama)}</span><b class="pn">${me.nama}</b><div class="mut">Relawan RPI${divNama(d.div,me.divisi_id)?' · Divisi '+divNama(d.div,me.divisi_id):''}${me.no_hp?' · '+me.no_hp:''}</div></div>
+    ${tab==='akun'&&html`<div><div class="card prof"><span class="avt big">${ini(me.nama)}</span><b class="pn">${me.nama}</b><div class="mut">Relawan RPI${divNama(d.div,me.divisi_id)?' · Divisi '+divNama(d.div,me.divisi_id):''}${divNama(d.prodi,me.prodi_id)?' · '+divNama(d.prodi,me.prodi_id):''}${me.no_hp?' · '+me.no_hp:''}</div></div>
       <div class="card menu"><div class="mi"><span>Mode tampilan</span><${ThemeBtn}/></div><button class="mi lo" onClick=${out}><span>Keluar</span><${Ic} d=${P.out}/></button></div></div>`}</div>`}
   ${!isR&&html`<div class="hello"><span class="avt">${ini(me.nama)}</span><div><b>Halo, ${first}</b><div class="mut">Pantau kunjungan dan donasi tim hari ini.</div></div></div>`}
   ${me.role==='koordinator'&&html`<div style=${{marginTop:12}}><div class="tabs">${korTabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}</div>${tab==='mon'&&html`<${Coord} d=${d}/>`}${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab('riwayat');}}/>`}${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:12}}><b>Riwayat Kunjungan Saya</b><span class="mut">${mine.length} data</span></div><${Tbl} list=${mine} rc=${setRc} act=${actR}/></div>`}</div>`}
