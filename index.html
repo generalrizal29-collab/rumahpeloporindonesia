@@ -530,7 +530,7 @@ const sumBy=(l,k)=>l.reduce((a,r)=>a+(+r[k]||0),0);
 const dlCsv=(name,rows)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+rows.map(r=>r.map(csvCell).join(',')).join('\n')],{type:'text/csv'}));a.download=name;a.click();};
 
 function Rekap({d}){
-  const [pk,setPk]=useState('7'),[dv,setDv]=useState(''),[pf,setPf]=useState(''),[fr,setFr]=useState(''),[cd,setCd]=useState(''),[cs,setCs]=useState(''),[rows,setRows]=useState(null),[ld,setLd]=useState(false),[er,setEr]=useState(''),[open,setOpen]=useState({}),[fl,setFl]=useState('hari'),[nIdle,setNIdle]=useState(50),[tick,setTick]=useState(0);
+  const [pk,setPk]=useState('30'),[sec,setSec]=useState({}),[dv,setDv]=useState(''),[pf,setPf]=useState(''),[fr,setFr]=useState(''),[cd,setCd]=useState(''),[cs,setCs]=useState(''),[rows,setRows]=useState(null),[ld,setLd]=useState(false),[er,setEr]=useState(''),[open,setOpen]=useState({}),[fl,setFl]=useState('hari'),[nIdle,setNIdle]=useState(50),[tick,setTick]=useState(0);
   const today=hariWIB();
   const [dari,sampai]=pk==='1'?[today,today]:pk==='7'?[addDays(today,-6),today]:pk==='30'?[addDays(today,-29),today]:[cd,cs];
   const valid=!!dari&&!!sampai&&dari<=sampai&&(Date.parse(sampai)-Date.parse(dari))/864e5<=365;
@@ -565,10 +565,12 @@ function Rekap({d}){
   const exp=()=>dlCsv('rpi-rekap-tim-'+dari+'_'+sampai+'.csv',[['Kelompok','Nama','Peran','Divisi','Prodi','No HP','Kunjungan','Berhasil','Menunggu Verifikasi','Dana Verified','Kunjungan Hari Ini','Terakhir Lapor','Status Periode'],...groups.flatMap(g=>g.l.map(r=>[g.nama,r.nama,ROLE_LBL[r.role],dvn(r.divisi_id),prn(r.prodi_id),r.no_hp,r.kunjungan,r.berhasil,r.menunggu,r.dana_verified,r.hari_ini,lastTxt(r.terakhir),r.kunjungan>0?'Bergerak':'Belum bergerak']))]);
   const mut={color:'var(--mut)',fontSize:12};
   const periodTxt=dari&&sampai?(dari===sampai?dari:dari+' s/d '+sampai):'';
+  const tg=k=>setSec(o=>({...o,[k]:!o[k]}));
+  const head=(k,title,sub)=>html`<div role="button" tabIndex="0" aria-expanded=${!!sec[k]} onClick=${()=>tg(k)} onKeyDown=${e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg(k);}}} style=${{display:'flex',alignItems:'center',gap:8,cursor:'pointer',userSelect:'none'}}><b style=${{flex:1,minWidth:0}}>${title}${sub!=null&&html` <span style=${mut}>${sub}</span>`}</b><span style=${{color:'var(--pr)',fontSize:14,flex:'none'}}>${sec[k]?'▲':'▼'}</span></div>`;
   const dvRows=[...d.div.map(x=>({id:x.id,nama:x.nama})),{id:null,nama:'Tanpa divisi'}].map(x=>{const l=R.filter(r=>(r.divisi_id||null)===x.id);return{...x,l,gerak:l.filter(r=>r.kunjungan>0).length};}).filter(x=>x.l.length);
   const prRows=[...d.prodi.map(x=>({id:x.id,nama:x.nama})),{id:null,nama:'Tanpa prodi'}].map(x=>{const l=R.filter(r=>(r.prodi_id||null)===x.id);return{...x,l,gerak:l.filter(r=>r.kunjungan>0).length};}).filter(x=>x.l.length);
-  const prCard=d.prodi.length?html`<div class="card sc"><b>Rekap per Prodi</b> <span style=${mut}>${periodTxt}</span><table><thead><tr><th>Prodi</th><th>Anggota</th><th>Bergerak</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>${prRows.map(x=>html`<tr key=${x.nama}><td>${x.nama}</td><td>${x.l.length}</td><td>${x.gerak}</td><td>${sumBy(x.l,'kunjungan')}</td><td>${sumBy(x.l,'berhasil')}</td><td>${Rp(sumBy(x.l,'dana_verified'))}</td></tr>`)}</tbody></table></div>`:null;
-  const divCard=html`<div class="card sc"><b>Rekap per Divisi</b> <span style=${mut}>${periodTxt}</span><table><thead><tr><th>Divisi</th><th>Anggota</th><th>Bergerak</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>${dvRows.map(x=>html`<tr key=${x.nama}><td>${x.nama}</td><td>${x.l.length}</td><td>${x.gerak}</td><td>${sumBy(x.l,'kunjungan')}</td><td>${sumBy(x.l,'berhasil')}</td><td>${Rp(sumBy(x.l,'dana_verified'))}</td></tr>`)}</tbody></table></div>`;
+  const prCard=d.prodi.length?html`<div class="card">${head('pr','Rekap per Prodi',periodTxt)}${sec.pr&&html`<div class="sc" style=${{marginTop:8}}><table><thead><tr><th>Prodi</th><th>Anggota</th><th>Bergerak</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>${prRows.map(x=>html`<tr key=${x.nama}><td>${x.nama}</td><td>${x.l.length}</td><td>${x.gerak}</td><td>${sumBy(x.l,'kunjungan')}</td><td>${sumBy(x.l,'berhasil')}</td><td>${Rp(sumBy(x.l,'dana_verified'))}</td></tr>`)}</tbody></table></div>`}</div>`:null;
+  const divCard=html`<div class="card">${head('dv','Rekap per Divisi',periodTxt)}${sec.dv&&html`<div class="sc" style=${{marginTop:8}}><table><thead><tr><th>Divisi</th><th>Anggota</th><th>Bergerak</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>${dvRows.map(x=>html`<tr key=${x.nama}><td>${x.nama}</td><td>${x.l.length}</td><td>${x.gerak}</td><td>${sumBy(x.l,'kunjungan')}</td><td>${sumBy(x.l,'berhasil')}</td><td>${Rp(sumBy(x.l,'dana_verified'))}</td></tr>`)}</tbody></table></div>`}</div>`;
   return html`<div>
   <div class="card"><div class="row2"><div><label>Peran</label><select value=${fr} onChange=${e=>setFr(e.target.value)}><option value="">Semua (Relawan, Korel, SPV)</option><option value="relawan">Relawan</option><option value="koordinator">Korel</option><option value="spv">SPV</option></select></div>
     <div><label>Divisi</label><select value=${dv} onChange=${e=>setDv(e.target.value)}><option value="">Semua divisi</option>${d.div.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div>
@@ -580,20 +582,22 @@ function Rekap({d}){
     <div><b style=${{fontSize:20,color:'var(--pr)'}}>${hari}</b> dari ${tot} anggota sudah bergerak (${pct}%) · <b style=${{color:'#dc2626'}}>${tot-hari}</b> belum melapor hari ini</div>
     <div style=${{...mut,marginTop:4}}>“Bergerak” = sudah mengirim minimal 1 laporan kunjungan (status apa pun) hari ini. Relawan, Korel, dan SPV yang aktif ikut dihitung.</div></div>`}</div>
 
-  <div class="card"><b>Anggota yang Perlu Diingatkan</b>
+  <div class="card">${head('idle','Anggota yang Perlu Diingatkan','('+idle.length+')')}${sec.idle&&html`<div style=${{marginTop:8}}>
     <div class="chips">${FL.map(([k,l])=>html`<button key=${k} class=${fl===k?'a':''} onClick=${()=>{setFl(k);setNIdle(50);}}>${l+' ('+R.filter(r=>k==='hari'?r.hari_ini===0:k==='nol'?!r.terakhir:(!r.terakhir||umurHari(r.terakhir)>=+k)).length+')'}</button>`)}</div>
     <div class="sc"><table><thead><tr><th>Nama</th><th>Atasan</th><th>Divisi</th><th>Prodi</th><th>Terakhir lapor</th><th>Hari ini</th><th></th></tr></thead><tbody>
     ${idle.slice(0,nIdle).map(r=>html`<tr key=${r.relawan_id}><td>${r.nama} ${rl(r)}</td><td>${atasan(r)}</td><td>${dvn(r.divisi_id)||'-'}</td><td>${prn(r.prodi_id)||'-'}</td><td>${lastTxt(r.terakhir)}</td><td>${r.hari_ini}</td>
       <td>${waLink(r.no_hp)?html`<a class="btn s o" style=${{textDecoration:'none',display:'inline-block'}} href=${waLink(r.no_hp)} target="_blank" rel="noopener noreferrer">WA</a>`:'-'}</td></tr>`)}
     ${!idle.length&&html`<tr><td colspan="7" style=${{color:'var(--mut)'}}>${rows===null?'Memuat…':'Tidak ada anggota pada kategori ini 🎉'}</td></tr>`}</tbody></table></div>
-    ${idle.length>nIdle&&html`<div style=${{textAlign:'center',marginTop:8}}><button class="btn s o" onClick=${()=>setNIdle(nIdle+50)}>Tampilkan lebih banyak (${idle.length-nIdle})</button></div>`}</div>
+    ${idle.length>nIdle&&html`<div style=${{textAlign:'center',marginTop:8}}><button class="btn s o" onClick=${()=>setNIdle(nIdle+50)}>Tampilkan lebih banyak (${idle.length-nIdle})</button></div>`}</div>`}</div>
 
-  <div class="card"><b>Rekap per Korel</b> <span style=${mut}>${periodTxt}</span>
-    <div class="chips" style=${{marginBottom:6}}>${[['1','Hari ini'],['7','7 hari'],['30','30 hari'],['x','Kustom']].map(([k,l])=>html`<button key=${k} class=${pk===k?'a':''} onClick=${()=>{if(k==='x'&&!cd){setCd(addDays(today,-6));setCs(today);}setPk(k);}}>${l}</button>`)}
+  <div class="card"><b>Periode Rekap</b> <span style=${mut}>${periodTxt}</span>
+    <div class="chips" style=${{marginBottom:6}}>${[['1','Hari ini'],['7','7 hari'],['30','30 hari'],['x','Kustom']].map(([k,l])=>html`<button key=${k} class=${pk===k?'a':''} onClick=${()=>{if(k==='x'&&!cd){setCd(addDays(today,-29));setCs(today);}setPk(k);}}>${l}</button>`)}
       <button onClick=${()=>setTick(t=>t+1)}>Muat ulang</button><button onClick=${exp} disabled=${!groups.length}>Ekspor CSV</button></div>
     ${pk==='x'&&html`<div class="grid" style=${{gridTemplateColumns:'1fr 1fr',marginBottom:8}}><div><label>Dari tanggal</label><input type="date" value=${cd} onInput=${e=>setCd(e.target.value)}/></div><div><label>Sampai tanggal</label><input type="date" value=${cs} onInput=${e=>setCs(e.target.value)}/></div></div>`}
     ${!valid&&html`<div style=${{color:'#dc2626',fontSize:12,marginBottom:8}}>Pilih rentang tanggal yang valid (dari ≤ sampai, maksimal 1 tahun).</div>`}
     <div class="grid g4" style=${{marginBottom:10}}>${[['Anggota aktif',tot],['Bergerak di periode',gerakP+' / '+tot],['Kunjungan',sumBy(R,'kunjungan')],['Berhasil',sumBy(R,'berhasil')],['Dana Verified',Rp(sumBy(R,'dana_verified'))]].map(([a,b])=>html`<div class="card" style=${{marginBottom:0}} key=${a}><div style=${mut}>${a}</div><div style=${{fontSize:16,fontWeight:800,color:'var(--pr)'}}>${b}</div></div>`)}</div>
+  </div>
+  <div class="card">${head('kr','Rekap per Korel',periodTxt)}${sec.kr&&html`<div style=${{marginTop:8}}>
     <div style=${{...mut,marginBottom:6}}>Klik nama kelompok untuk melihat rincian anggotanya. Korel dihitung bersama relawannya; SPV ada di kelompok SPV.</div>
     <div class="sc"><table><thead><tr><th>Kelompok</th><th>Anggota</th><th>Bergerak</th><th>Belum</th><th>%</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>
     ${groups.map(g=>html`<${React.Fragment} key=${gk(g)}>
@@ -605,7 +609,7 @@ function Rekap({d}){
         ${g.l.map(r=>html`<tr key=${r.relawan_id}><td>${r.nama} ${rl(r)}</td><td>${dvn(r.divisi_id)||'-'}</td><td>${prn(r.prodi_id)||'-'}</td><td><span class=${'badge '+(r.kunjungan>0?'Verified':'Rejected')}>${r.kunjungan>0?'Bergerak':'Belum bergerak'}</span></td><td>${r.kunjungan}</td><td>${r.berhasil}</td><td>${Rp(r.dana_verified)}</td><td>${lastTxt(r.terakhir)}</td><td>${r.hari_ini}</td></tr>`)}</tbody></table>`:html`<div style=${{...mut,padding:8}}>Belum ada anggota aktif di kelompok ini.</div>`}</div></td></tr>`}
     <//>`)}
     ${!groups.length&&html`<tr><td colspan="8" style=${{color:'var(--mut)'}}>${rows===null?'Memuat…':'Belum ada data'}</td></tr>`}
-    ${groups.length>0&&html`<tr style=${{fontWeight:700}}><td>Total</td><td>${tot}</td><td>${gerakP}</td><td>${tot-gerakP}</td><td>${tot?Math.round(gerakP*100/tot)+'%':'-'}</td><td>${sumBy(R,'kunjungan')}</td><td>${sumBy(R,'berhasil')}</td><td>${Rp(sumBy(R,'dana_verified'))}</td></tr>`}</tbody></table></div></div>${divCard}${prCard}</div>`;
+    ${groups.length>0&&html`<tr style=${{fontWeight:700}}><td>Total</td><td>${tot}</td><td>${gerakP}</td><td>${tot-gerakP}</td><td>${tot?Math.round(gerakP*100/tot)+'%':'-'}</td><td>${sumBy(R,'kunjungan')}</td><td>${sumBy(R,'berhasil')}</td><td>${Rp(sumBy(R,'dana_verified'))}</td></tr>`}</tbody></table></div></div>`}</div>${divCard}${prCard}</div>`;
 }
 
 function Targets({d}){
