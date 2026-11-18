@@ -631,7 +631,7 @@ const waClean=t=>String(t||'').replace(/[*_~`]/g,'');
 function klasWa({items,met,mode,pkl,a,b,filt,tg,tp,limit,lembaga}){
   const MET={dana:'Dana',berhasil:'Berhasil',kunjungan:'Kunjungan'},MD=['🥇','🥈','🥉'],today=hariWIB();
   const now=new Date().toLocaleString('id-ID',{timeZone:'Asia/Jakarta',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(/\./g,':');
-  const L=['*KLASEMEN '+waClean(lembaga||'RPI').toUpperCase()+'*','Periode: '+pkl+(a===b?'':' ('+tglUI(a)+' - '+tglUI(b)+')'),'Tampilan: '+({rel:'Perorangan',korel:'Per Korel',spv:'Per SPV'})[mode]+' · Urut: '+MET[met]];
+  const L=['*KLASEMEN '+waClean(lembaga||'RPI').toUpperCase()+'*','Periode: '+pkl+(a===b?'':' ('+tglUI(a)+' - '+tglUI(b)+')'),'Tampilan: '+({rel:'Perorangan',korel:'Per Korel',spv:'Per SPV',prodi:'Per Prodi'})[mode]+' · Urut: '+MET[met]];
   if(filt.length)L.push('Filter: '+filt.join(' · '));
   L.push('');
   items.slice(0,limit).forEach((r,i)=>{L.push((MD[i]||(i+1)+'.')+' *'+waClean(r.nama)+'*');L.push('     '+Rp(r.dana)+' · '+r.berhasil+' berhasil · '+r.kunjungan+' kunjungan');});
@@ -646,7 +646,7 @@ function klasWa({items,met,mode,pkl,a,b,filt,tg,tp,limit,lembaga}){
 }
 
 function Klasemen({d,me}){
-  const [pk,setPk]=useState('30'),[mode,setMode]=useState('rel'),[met,setMet]=useState('dana'),[fs,setFs]=useState(''),[fk,setFk]=useState(''),[dv,setDv]=useState(''),[rows,setRows]=useState(null),[er,setEr]=useState(''),[cp,setCp]=useState(false);
+  const [pk,setPk]=useState('30'),[mode,setMode]=useState('rel'),[met,setMet]=useState('dana'),[fs,setFs]=useState(''),[fk,setFk]=useState(''),[dv,setDv]=useState(''),[pf,setPf]=useState(''),[rows,setRows]=useState(null),[er,setEr]=useState(''),[cp,setCp]=useState(false);
   const today=hariWIB();
   const rng=()=>pk==='0'?[today,today]:pk==='bln'?[today.slice(0,8)+'01',today]:pk==='all'?['2000-01-01',today]:[addDays(today,-(+pk-1)),today];
   useEffect(()=>{let ok=true;setRows(null);
@@ -655,24 +655,25 @@ function Klasemen({d,me}){
     return()=>{ok=false};},[pk]);
   const R=(rows||[]).map(r=>({...r,kunjungan:+r.kunjungan,berhasil:+r.berhasil,dana:+r.dana_verified}));
   const spvs=R.filter(r=>r.role==='spv'),koors=R.filter(r=>r.role==='koordinator'&&(!fs||r.spv_id===fs));
-  const F=R.filter(r=>(!fs||r.spv_id===fs)&&(!fk||r.koordinator_id===fk||r.id===fk)&&(!dv||String(r.divisi_id||'')===dv));
+  const F=R.filter(r=>(!fs||r.spv_id===fs)&&(!fk||r.koordinator_id===fk||r.id===fk)&&(!dv||String(r.divisi_id||'')===dv)&&(!pf||String(((d.prof.find(p=>p.id===r.id))||{}).prodi_id||'')===pf));
   let items;
   if(mode==='rel')items=F.map(r=>({id:r.id,nama:r.nama,sub:ROLE_LBL[r.role]+(divNama(d.div,r.divisi_id)?' · '+divNama(d.div,r.divisi_id):''),kunjungan:r.kunjungan,berhasil:r.berhasil,dana:r.dana}));
-  else{const gk=mode==='korel'?(r=>r.role==='koordinator'?r.id:r.koordinator_id):(r=>r.spv_id),g={};
-    F.forEach(r=>{const id=gk(r);if(!id)return;const o=g[id]=g[id]||{id,nama:(R.find(x=>x.id===id)||{}).nama||'-',n:0,kunjungan:0,berhasil:0,dana:0};o.n++;o.kunjungan+=r.kunjungan;o.berhasil+=r.berhasil;o.dana+=r.dana;});
+  else{const pOf=r=>((d.prof.find(p=>p.id===r.id))||{}).prodi_id,gk=mode==='korel'?(r=>r.role==='koordinator'?r.id:r.koordinator_id):mode==='prodi'?pOf:(r=>r.spv_id),g={};
+    F.forEach(r=>{const id=gk(r);if(!id)return;const o=g[id]=g[id]||{id,nama:mode==='prodi'?(divNama(d.prodi,id)||'-'):(R.find(x=>x.id===id)||{}).nama||'-',n:0,kunjungan:0,berhasil:0,dana:0};o.n++;o.kunjungan+=r.kunjungan;o.berhasil+=r.berhasil;o.dana+=r.dana;});
     items=Object.values(g).map(o=>({...o,sub:o.n+' orang'}));}
   items.sort((a,b)=>(b[met]-a[met])||(b.dana-a.dana)||a.nama.localeCompare(b.nama));
-  const wa=lim=>{const rg=rng();return klasWa({items,met,mode,pkl:({'0':'Hari ini','7':'7 hari terakhir','30':'30 hari terakhir','bln':'Bulan ini','all':'Semua waktu'})[pk],a:rg[0],b:rg[1],filt:[fs&&'SPV '+((R.find(x=>x.id===fs)||{}).nama||''),fk&&'Korel '+((R.find(x=>x.id===fk)||{}).nama||''),dv&&'Divisi '+divNama(d.div,+dv)].filter(Boolean),tg:d.tg,tp:d.tp,limit:lim,lembaga:d.lem&&d.lem.nama});};
+  const wa=lim=>{const rg=rng();return klasWa({items,met,mode,pkl:({'0':'Hari ini','7':'7 hari terakhir','30':'30 hari terakhir','bln':'Bulan ini','all':'Semua waktu'})[pk],a:rg[0],b:rg[1],filt:[fs&&'SPV '+((R.find(x=>x.id===fs)||{}).nama||''),fk&&'Korel '+((R.find(x=>x.id===fk)||{}).nama||''),dv&&'Divisi '+divNama(d.div,+dv),pf&&divNama(d.prodi,+pf)].filter(Boolean),tg:d.tg,tp:d.tp,limit:lim,lembaga:d.lem&&d.lem.nama});};
   const copyWa=async()=>{const t=wa(25);try{await navigator.clipboard.writeText(t);}catch(e){const x=document.createElement('textarea');x.value=t;x.style.cssText='position:fixed;opacity:0';document.body.appendChild(x);x.select();let ok=false;try{ok=document.execCommand('copy');}catch(_){}document.body.removeChild(x);if(!ok)return alert('Gagal menyalin. Salin manual atau gunakan tombol Kirim ke WhatsApp.');}setCp(true);setTimeout(()=>setCp(false),2000);};
   const waUrl=()=>{let t=wa(25);if(encodeURIComponent(t).length>1900)t=wa(10);return 'https://wa.me/?text='+encodeURIComponent(t);};
   const chip=(v,cur,set,l)=>html`<button key=${v} class=${cur===v?'a':''} onClick=${()=>set(v)}>${l}</button>`;
   return html`<div><div class="card"><b>Klasemen</b><div class="mut" style=${{fontSize:12}}>Dana dihitung dari donasi yang sudah Verified.</div>
     <label>Periode</label><div class="chips">${[['0','Hari ini'],['7','7 hari'],['30','30 hari'],['bln','Bulan ini'],['all','Semua']].map(([v,l])=>chip(v,pk,setPk,l))}</div>
-    <label>Tampilkan</label><div class="chips">${[['rel','Perorangan'],['korel','Per Korel'],['spv','Per SPV']].map(([v,l])=>chip(v,mode,setMode,l))}</div>
+    <label>Tampilkan</label><div class="chips">${[['rel','Perorangan'],['korel','Per Korel'],['spv','Per SPV'],...(d.prodi.length>0&&me.role!=='relawan'?[['prodi','Per Prodi']]:[])].map(([v,l])=>chip(v,mode,setMode,l))}</div>
     <label>Urutkan berdasarkan</label><div class="chips">${[['dana','Dana'],['berhasil','Berhasil'],['kunjungan','Kunjungan']].map(([v,l])=>chip(v,met,setMet,l))}</div>
     <div class="row2"><div><label>Filter SPV</label><select value=${fs} onChange=${e=>{setFs(e.target.value);setFk('');}}><option value="">Semua SPV</option>${spvs.map(x=>html`<option key=${x.id} value=${x.id}>${x.nama}</option>`)}</select></div>
     <div><label>Filter Korel</label><select value=${fk} onChange=${e=>setFk(e.target.value)}><option value="">Semua Korel</option>${koors.map(x=>html`<option key=${x.id} value=${x.id}>${x.nama}</option>`)}</select></div>
-    <div><label>Divisi</label><select value=${dv} onChange=${e=>setDv(e.target.value)}><option value="">Semua divisi</option>${d.div.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div></div></div>
+    <div><label>Divisi</label><select value=${dv} onChange=${e=>setDv(e.target.value)}><option value="">Semua divisi</option>${d.div.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div>
+    ${d.prodi.length>0&&me.role!=='relawan'&&html`<div><label>Prodi</label><select value=${pf} onChange=${e=>setPf(e.target.value)}><option value="">Semua prodi</option>${d.prodi.map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></div>`}</div></div>
     ${er&&html`<div class="card" style=${{color:'#dc2626'}}>${/klasemen/i.test(er)?'Fungsi klasemen belum terpasang. Jalankan schema-migrasi-spv.sql di Supabase SQL Editor.':er}</div>`}
     <div class="card sc">${rows!==null&&items.length>0&&html`<div style=${{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}><button class="btn s" onClick=${copyWa}>${cp?'Tersalin ✓':'Salin untuk WhatsApp'}</button><a class="btn s o" style=${{textDecoration:'none',display:'inline-block'}} href=${waUrl()} target="_blank" rel="noopener noreferrer">Kirim ke WhatsApp</a></div>`}${rows===null?Spin('Memuat klasemen...'):html`<table><thead><tr><th>#</th><th>Nama</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>
       ${items.map((r,i)=>html`<tr key=${r.id} style=${r.id===me.id?{background:'var(--prl)',fontWeight:700}:null}><td><b>${i+1}</b></td><td>${r.nama}<div class="mut" style=${{fontSize:11}}>${r.sub}</div></td><td>${r.kunjungan}</td><td>${r.berhasil}</td><td>${Rp(r.dana)}</td></tr>`)}
