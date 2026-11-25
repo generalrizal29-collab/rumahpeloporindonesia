@@ -390,15 +390,75 @@ function Verif({d,reload}){
   ${v.verif_status==='Pending'&&html`<button class="btn s g" onClick=${()=>set(v,'Verified')}>Approve</button><button class="btn s r" onClick=${()=>set(v,'Rejected')}>Reject</button>`}</span>`}/>`;
 }
 
+function EditKun({v,d,reload,onClose,onDone}){
+  const [f,setF]=useState({tgl:tgl(v),who:v.relawan_id,nama:v.donatur_nama||'',status:v.status,cat:v.catatan||'',nominal:v.nominal?String(v.nominal):'',kat:v.kategori_id?String(v.kategori_id):'',metode:v.metode||'Cash',vs:v.verif_status||'Pending',file:null}),[busy,setBusy]=useState(false);
+  const u=(k,x)=>setF(s=>({...s,[k]:x}));const ok=f.status==='Berhasil';
+  const today=hariWIB();
+  const team=d.prof.filter(p=>p.role!=='owner'&&(p.aktif||p.id===v.relawan_id)).sort((a,b)=>a.nama.localeCompare(b.nama));
+  const kats=d.cat.filter(c=>c.aktif||String(c.id)===f.kat);
+  const save=async()=>{
+    const nama=f.nama.trim();
+    if(!nama)return alert('Nama donatur wajib diisi');
+    if(!f.tgl||f.tgl>today)return alert('Tanggal tidak valid (tidak boleh di masa depan)');
+    if(ok){if(!(+f.nominal>0))return alert('Nominal wajib diisi');if(!f.kat)return alert('Pilih kategori');if(f.metode!=='Cash'&&!f.file&&!v.bukti_path)return alert('Upload bukti pembayaran untuk metode '+f.metode);}
+    const wasV=v.verif_status==='Verified';
+    const money=wasV&&((!ok)||(+f.nominal!==v.nominal)||String(f.kat)!==String(v.kategori_id||'')||f.metode!==v.metode);
+    if(money&&!confirm('Donasi ini sudah Verified'+(v.no_kuitansi?' (kuitansi '+v.no_kuitansi+')':'')+'.\n\nMengubah status/nominal/kategori/metode akan langsung mengubah laporan dan dashboard. Lanjutkan?'))return;
+    setBusy(true);
+    try{
+      let path=ok&&f.metode!=='Cash'?(v.bukti_path||null):null,newPath=null;
+      if(ok&&f.metode!=='Cash'&&f.file){const blob=await compressImg(f.file);newPath=f.who+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,6)+'.jpg';const r=await sb.storage.from('bukti').upload(newPath,blob,{contentType:'image/jpeg'});if(r.error)throw r.error;path=newPath;}
+      const au=await sb.auth.getUser();
+      const row={relawan_id:f.who,donatur_nama:nama,status:f.status,catatan:f.cat.trim()||null,nominal:ok?+f.nominal:0,kategori_id:ok?+f.kat:null,metode:ok?f.metode:null,bukti_path:ok?path:null,verif_status:ok?f.vs:null,diubah_oleh:au.data&&au.data.user?au.data.user.id:null,diubah_at:new Date().toISOString()};
+      if(f.tgl!==tgl(v))row.created_at=new Date(f.tgl+'T'+jam(v)+':00+07:00').toISOString();
+      const r=await sb.from('kunjungan').update(row).eq('id',v.id).select('id');
+      if(r.error){if(newPath)sb.storage.from('bukti').remove([newPath]);throw /diubah_/.test(r.error.message||'')?new Error('Kolom edit belum ada di database. Jalankan schema-edit-kunjungan.sql di Supabase SQL Editor.'):r.error;}
+      if(!r.data||!r.data.length){if(newPath)sb.storage.from('bukti').remove([newPath]);throw new Error('Perubahan tidak tersimpan (tidak ada izin). Pastikan Anda login sebagai owner.');}
+      if(v.bukti_path&&v.bukti_path!==path)sb.storage.from('bukti').remove([v.bukti_path]);
+      reload();onDone();
+    }catch(e){err(e);}
+    setBusy(false);
+  };
+  return html`<div class="modal" onClick=${()=>!busy&&onClose()}><div style=${{background:'var(--card)',color:'var(--tx)'}} onClick=${e=>e.stopPropagation()}><div class="sht"><b>Edit Kunjungan</b></div>
+  <div class="mut" style=${{fontSize:12,marginTop:4}}>Perubahan langsung berlaku. Hanya owner yang bisa mengedit.</div>
+  <label>Pelapor</label><select value=${f.who} onChange=${e=>u('who',e.target.value)}>${team.map(p=>html`<option key=${p.id} value=${p.id}>${p.nama} (${ROLE_LBL[p.role]})${p.aktif?'':' · nonaktif'}</option>`)}</select>
+  <label>Tanggal kunjungan</label><input type="date" max=${today} value=${f.tgl} onChange=${e=>u('tgl',e.target.value)}/>
+  <label>Nama donatur</label><input value=${f.nama} onInput=${e=>u('nama',e.target.value)}/>
+  <label>Status kunjungan</label><div class="seg c2">${STATUS.map(x=>html`<button key=${x} class=${f.status===x?'a':''} onClick=${()=>u('status',x)}>${x}</button>`)}</div>
+  ${ok&&html`<div>
+  <label>Nominal (Rp)</label><div class="amt"><span>Rp</span><input type="number" inputmode="numeric" placeholder="0" value=${f.nominal} onInput=${e=>u('nominal',e.target.value)}/></div>
+  <label>Kategori</label><div class="seg">${kats.map(c=>html`<button key=${c.id} class=${String(f.kat)===String(c.id)?'a':''} onClick=${()=>u('kat',String(c.id))}>${c.nama}</button>`)}</div>
+  <label>Metode bayar</label><div class="seg c2">${METODE.map(m=>html`<button key=${m} class=${f.metode===m?'a':''} onClick=${()=>u('metode',m)}>${m}</button>`)}</div>
+  ${f.metode!=='Cash'&&html`<div><label>Bukti pembayaran</label>${v.bukti_path&&!f.file&&html`<div class="mut" style=${{fontSize:12,marginBottom:6}}>Bukti saat ini tersimpan. <a href="#" onClick=${e=>{e.preventDefault();openBukti(v.bukti_path);}}>Lihat</a> · pilih foto baru untuk menggantinya.</div>`}<label class="drop"><input type="file" accept="image/*" hidden onChange=${e=>u('file',e.target.files[0]||null)}/><${Ic} d=${P.camera} s=${22}/><span>${f.file?f.file.name:(v.bukti_path?'Ganti foto bukti (opsional)':'Ketuk untuk memilih foto bukti')}</span></label></div>`}
+  <label>Status verifikasi</label><div class="seg c2">${['Pending','Verified','Rejected'].map(x=>html`<button key=${x} class=${f.vs===x?'a':''} onClick=${()=>u('vs',x)}>${x}</button>`)}</div>
+  ${f.vs==='Verified'&&!v.no_kuitansi&&html`<div class="mut" style=${{fontSize:12,marginTop:4}}>Nomor kuitansi dibuat otomatis saat disimpan.</div>`}
+  </div>`}
+  <label>Catatan</label><input value=${f.cat} onInput=${e=>u('cat',e.target.value)}/>
+  <div class="ac" style=${{marginTop:16}}><button class="btn s" disabled=${busy} onClick=${save}>${busy?'Menyimpan...':'Simpan Perubahan'}</button><button class="btn s o" disabled=${busy} onClick=${onClose}>Batal</button></div></div></div>`;
+}
+
 function Detail({v,d,reload,onClose,canV}){
+  const [ed,setEd]=useState(false),[bz,setBz]=useState(false);
   const don=d.don.find(x=>x.id===v.donatur_id),vb=d.prof.find(p=>p.id===v.verif_by);
   const set=async s=>{if(s==='Verified'&&!confirm('Approve '+Rp(v.nominal)+' dari '+v.donatur_nama+'?\n\nSetelah Verified, data bersifat final dan tidak bisa diubah.'))return;const r=await sb.from('kunjungan').update({verif_status:s}).eq('id',v.id);if(r.error)err(r.error);else{reload();onClose();}};
+  const del=async()=>{
+    if(!confirm('HAPUS kunjungan ini?\n\n'+v.donatur_nama+(v.nominal?' · '+Rp(v.nominal):'')+(v.verif_status==='Verified'?'\n\nDonasi ini sudah Verified'+(v.no_kuitansi?' (kuitansi '+v.no_kuitansi+')':'')+'. Total dana di dashboard akan berkurang.':'')+'\n\nTindakan ini tidak bisa dibatalkan.'))return;
+    setBz(true);
+    const r=await sb.from('kunjungan').delete().eq('id',v.id).select('id');
+    setBz(false);
+    if(r.error)return err(r.error);
+    if(!r.data||!r.data.length)return alert('Gagal menghapus. Jalankan schema-edit-kunjungan.sql di Supabase SQL Editor dan pastikan login sebagai owner.');
+    if(v.bukti_path)sb.storage.from('bukti').remove([v.bukti_path]);
+    reload();onClose();
+  };
   const wk=t=>t?tgl({created_at:t})+' '+jam({created_at:t})+' WIB':null;
-  const rows=[['Waktu lapor',wk(v.created_at)],['Relawan',v.relawan&&v.relawan.nama],['Divisi',divNama(d.div,v.relawan&&v.relawan.divisi_id)||'-'],['Donatur',v.donatur_nama],['No. HP donatur',don&&don.no_hp],['Alamat donatur',don&&don.alamat],['Status kunjungan',v.status],['Catatan',v.catatan],['Nominal',v.nominal?Rp(v.nominal):null],['Kategori',v.kategori&&v.kategori.nama],['Metode',v.metode],['Verifikasi',v.verif_status],['Diverifikasi oleh',vb&&vb.nama],['Waktu verifikasi',wk(v.verif_at)],['No. kuitansi',v.no_kuitansi]].filter(r=>r[1]);
+  const rows=[['Waktu lapor',wk(v.created_at)],['Relawan',v.relawan&&v.relawan.nama],['Divisi',divNama(d.div,v.relawan&&v.relawan.divisi_id)||'-'],['Donatur',v.donatur_nama],['No. HP donatur',don&&don.no_hp],['Alamat donatur',don&&don.alamat],['Status kunjungan',v.status],['Catatan',v.catatan],['Nominal',v.nominal?Rp(v.nominal):null],['Kategori',v.kategori&&v.kategori.nama],['Metode',v.metode],['Verifikasi',v.verif_status],['Diverifikasi oleh',vb&&vb.nama],['Waktu verifikasi',wk(v.verif_at)],['No. kuitansi',v.no_kuitansi],['Terakhir diedit owner',wk(v.diubah_at)]].filter(r=>r[1]);
+  if(ed)return html`<${EditKun} v=${v} d=${d} reload=${reload} onClose=${()=>setEd(false)} onDone=${onClose}/>`;
   return html`<div class="modal" onClick=${onClose}><div style=${{background:'var(--card)',color:'var(--tx)'}} onClick=${e=>e.stopPropagation()}><div class="sht"><b>Detail Kunjungan</b></div>
   <div class="kvs">${rows.map(([a,b])=>html`<div class="kv" key=${a}><span>${a}</span><b>${b}</b></div>`)}</div>
   <div class="ac" style=${{marginTop:16}}>${v.bukti_path&&html`<button class="btn s o" onClick=${()=>openBukti(v.bukti_path)}>Lihat Bukti</button>`}
   ${canV&&v.verif_status==='Pending'&&html`<button class="btn s g" onClick=${()=>set('Verified')}>Approve</button><button class="btn s r" onClick=${()=>set('Rejected')}>Reject</button>`}
+  ${canV&&html`<button class="btn s" disabled=${bz} onClick=${()=>setEd(true)}>Edit</button><button class="btn s r" disabled=${bz} onClick=${del}>${bz?'Menghapus...':'Hapus'}</button>`}
   <button class="btn s o" onClick=${onClose}>Tutup</button></div></div></div>`;
 }
 
@@ -530,7 +590,7 @@ const sumBy=(l,k)=>l.reduce((a,r)=>a+(+r[k]||0),0);
 const dlCsv=(name,rows)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+rows.map(r=>r.map(csvCell).join(',')).join('\n')],{type:'text/csv'}));a.download=name;a.click();};
 
 function Rekap({d}){
-  const [pk,setPk]=useState('30'),[sec,setSec]=useState({}),[dv,setDv]=useState(''),[pf,setPf]=useState(''),[fr,setFr]=useState(''),[cd,setCd]=useState(''),[cs,setCs]=useState(''),[rows,setRows]=useState(null),[ld,setLd]=useState(false),[er,setEr]=useState(''),[open,setOpen]=useState({}),[fl,setFl]=useState('hari'),[nIdle,setNIdle]=useState(50),[tick,setTick]=useState(0);
+  const [pk,setPk]=useState('30'),[sec,setSec]=useState({}),[dv,setDv]=useState(''),[pf,setPf]=useState(''),[fr,setFr]=useState(''),[cd,setCd]=useState(''),[cs,setCs]=useState(''),[rows,setRows]=useState(null),[ld,setLd]=useState(false),[er,setEr]=useState(''),[open,setOpen]=useState({}),[fl,setFl]=useState('hari'),[nIdle,setNIdle]=useState(50),[tick,setTick]=useState(0),[cpw,setCpw]=useState(false);
   const today=hariWIB();
   const [dari,sampai]=pk==='1'?[today,today]:pk==='7'?[addDays(today,-6),today]:pk==='30'?[addDays(today,-29),today]:[cd,cs];
   const valid=!!dari&&!!sampai&&dari<=sampai&&(Date.parse(sampai)-Date.parse(dari))/864e5<=365;
@@ -569,7 +629,22 @@ function Rekap({d}){
   const head=(k,title,sub)=>html`<div role="button" tabIndex="0" aria-expanded=${!!sec[k]} onClick=${()=>tg(k)} onKeyDown=${e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg(k);}}} style=${{display:'flex',alignItems:'center',gap:8,cursor:'pointer',userSelect:'none'}}><b style=${{flex:1,minWidth:0}}>${title}${sub!=null&&html` <span style=${mut}>${sub}</span>`}</b><span style=${{color:'var(--pr)',fontSize:14,flex:'none'}}>${sec[k]?'▲':'▼'}</span></div>`;
   const dvRows=[...d.div.map(x=>({id:x.id,nama:x.nama})),{id:null,nama:'Tanpa divisi'}].map(x=>{const l=R.filter(r=>(r.divisi_id||null)===x.id);return{...x,l,gerak:l.filter(r=>r.kunjungan>0).length};}).filter(x=>x.l.length);
   const prRows=[...d.prodi.map(x=>({id:x.id,nama:x.nama})),{id:null,nama:'Tanpa prodi'}].map(x=>{const l=R.filter(r=>(r.prodi_id||null)===x.id);return{...x,l,gerak:l.filter(r=>r.kunjungan>0).length};}).filter(x=>x.l.length);
-  const prCard=d.prodi.length?html`<div class="card">${head('pr','Rekap per Prodi',periodTxt)}${sec.pr&&html`<div class="sc" style=${{marginTop:8}}><table><thead><tr><th>Prodi</th><th>Anggota</th><th>Bergerak</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>${prRows.map(x=>html`<tr key=${x.nama}><td>${x.nama}</td><td>${x.l.length}</td><td>${x.gerak}</td><td>${sumBy(x.l,'kunjungan')}</td><td>${sumBy(x.l,'berhasil')}</td><td>${Rp(sumBy(x.l,'dana_verified'))}</td></tr>`)}</tbody></table></div>`}</div>`:null;
+  const waPr=(nm=true)=>{
+    const now=new Date().toLocaleString('id-ID',{timeZone:'Asia/Jakarta',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(/\./g,':');
+    const L=['*REKAP PER PRODI*','Periode: '+(dari===sampai?tglUI(dari):tglUI(dari)+' - '+tglUI(sampai))];
+    const fl2=[fr&&ROLE_LBL[fr],dv&&'Divisi '+divNama(d.div,+dv),pf&&divNama(d.prodi,+pf)].filter(Boolean);
+    if(fl2.length)L.push('Filter: '+fl2.join(' · '));
+    prRows.forEach(x=>{const g=x.gerak;L.push('','*'+waClean(x.nama)+'*','1. Jmlh rel : '+x.l.length,'2. Rel. Gerak : '+g,'3. Rel. Blm gerak : '+(x.l.length-g),'4. Perolehan : '+Rp(sumBy(x.l,'dana_verified')));if(nm){const tag=r=>waClean(r.nama)+(r.role==='relawan'?'':' ('+ROLE_LBL[r.role]+')');
+      const bg=x.l.filter(r=>r.kunjungan>0).sort((a,b)=>(b.berhasil>0)-(a.berhasil>0)||b.dana_verified-a.dana_verified||a.nama.localeCompare(b.nama)),nb=x.l.filter(r=>!(r.kunjungan>0));
+      if(bg.length){L.push('','Bergerak:');bg.forEach(r=>L.push((r.berhasil>0?'✅ ':'▫️ ')+tag(r)+' - '+(r.berhasil>0?'Deal '+r.berhasil+'x · '+Rp(r.dana_verified):'Belum deal ('+r.kunjungan+' kunjungan)')));}
+      if(nb.length){L.push('','Belum gerak:');nb.forEach(r=>L.push('❌ '+tag(r)));}}});
+    if(!prRows.length)L.push('','_Belum ada data._');
+    else L.push('','*TOTAL*','1. Jmlh rel : '+tot,'2. Rel. Gerak : '+gerakP,'3. Rel. Blm gerak : '+(tot-gerakP),'4. Perolehan : '+Rp(sumBy(R,'dana_verified')));
+    L.push('',nm?'✅ = sudah deal · ▫️ = bergerak, belum deal · ❌ = belum bergerak':'','_Perolehan = donasi Verified · Rel = Relawan, Korel, SPV aktif · diperbarui '+now+' WIB_');
+    return L.join('\n');
+  };
+  const copyPr=async()=>{const t=waPr();try{await navigator.clipboard.writeText(t);}catch(e){const x=document.createElement('textarea');x.value=t;x.style.cssText='position:fixed;opacity:0';document.body.appendChild(x);x.select();let ok=false;try{ok=document.execCommand('copy');}catch(_){}document.body.removeChild(x);if(!ok)return alert('Gagal menyalin. Gunakan tombol Kirim ke WhatsApp.');}setCpw(true);setTimeout(()=>setCpw(false),2000);};
+  const prCard=d.prodi.length?html`<div class="card">${head('pr','Rekap per Prodi',periodTxt)}${sec.pr&&html`<div style=${{display:'flex',gap:8,flexWrap:'wrap',margin:'10px 0'}}><button class="btn s" onClick=${copyPr} disabled=${!prRows.length}>${cpw?'Tersalin ✓':'Salin untuk WhatsApp'}</button><a class="btn s o" style=${{textDecoration:'none',display:'inline-block'}} href=${'https://wa.me/?text='+encodeURIComponent(encodeURIComponent(waPr()).length>1900?waPr(false):waPr())} target="_blank" rel="noopener noreferrer">Kirim ke WhatsApp</a></div><div class="sc"><table><thead><tr><th>Prodi</th><th>Anggota</th><th>Bergerak</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>${prRows.map(x=>html`<tr key=${x.nama}><td>${x.nama}</td><td>${x.l.length}</td><td>${x.gerak}</td><td>${sumBy(x.l,'kunjungan')}</td><td>${sumBy(x.l,'berhasil')}</td><td>${Rp(sumBy(x.l,'dana_verified'))}</td></tr>`)}</tbody></table></div>`}</div>`:null;
   const divCard=html`<div class="card">${head('dv','Rekap per Divisi',periodTxt)}${sec.dv&&html`<div class="sc" style=${{marginTop:8}}><table><thead><tr><th>Divisi</th><th>Anggota</th><th>Bergerak</th><th>Kunjungan</th><th>Berhasil</th><th>Dana Verified</th></tr></thead><tbody>${dvRows.map(x=>html`<tr key=${x.nama}><td>${x.nama}</td><td>${x.l.length}</td><td>${x.gerak}</td><td>${sumBy(x.l,'kunjungan')}</td><td>${sumBy(x.l,'berhasil')}</td><td>${Rp(sumBy(x.l,'dana_verified'))}</td></tr>`)}</tbody></table></div>`}</div>`;
   return html`<div>
   <div class="card"><div class="row2"><div><label>Peran</label><select value=${fr} onChange=${e=>setFr(e.target.value)}><option value="">Semua (Relawan, Korel, SPV)</option><option value="relawan">Relawan</option><option value="koordinator">Korel</option><option value="spv">SPV</option></select></div>
