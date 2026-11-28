@@ -297,7 +297,7 @@ async function dlKuitansi(v,lem){
   const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.92));
   if(!blob)throw new Error('Gagal membuat gambar');
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='kuitansi-'+String(v.no_kuitansi||'RPI').replace(/[^\w-]+/g,'-')+'.jpg';
+  a.download='kuitansi-'+String(v.no_kuitansi||'RPI').replace(/[^\w-]+/g,'-')+'-'+String(v.donatur_nama||'').trim().slice(0,24).replace(/[^\w]+/g,'-').replace(/^-|-$/g,'')+'.jpg';
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 }
 
@@ -473,8 +473,8 @@ function Detail({v,d,reload,onClose,canV,rc}){
   return html`<div class="modal" onClick=${onClose}><div style=${{background:'var(--card)',color:'var(--tx)'}} onClick=${e=>e.stopPropagation()}><div class="sht"><b>Detail Kunjungan</b></div>
   <div class="kvs">${rows.map(([a,b])=>html`<div class="kv" key=${a}><span>${a}</span><b>${b}</b></div>`)}</div>
   <div class="ac" style=${{marginTop:16}}>${v.bukti_path&&html`<button class="btn s o" onClick=${()=>openBukti(v.bukti_path)}>Lihat Bukti</button>`}
-  ${rc&&isV(v)&&html`<button class="btn s g" onClick=${()=>rc(v)}>Kuitansi / Unduh JPG</button>`}
   ${canV&&v.verif_status==='Pending'&&html`<button class="btn s g" onClick=${()=>set('Verified')}>Approve</button><button class="btn s r" onClick=${()=>set('Rejected')}>Reject</button>`}
+  ${rc&&isV(v)&&html`<button class="btn s g" onClick=${()=>{onClose();rc(v);}}>Kuitansi</button>`}
   ${canV&&html`<button class="btn s" disabled=${bz} onClick=${()=>setEd(true)}>Edit</button><button class="btn s r" disabled=${bz} onClick=${del}>${bz?'Menghapus...':'Hapus'}</button>`}
   <button class="btn s o" onClick=${onClose}>Tutup</button></div></div></div>`;
 }
@@ -552,6 +552,18 @@ function Team({d,reload}){
     if(r.error||!r.data||r.data.error)return alert('Gagal: '+((r.data&&r.data.error)||(r.error&&r.error.message)||'tidak diketahui'));
     setRes(r.data.results);setTxt('');reload();
   };
+  const subCount=p=>p.role==='koordinator'?d.prof.filter(x=>x.koordinator_id===p.id).length:p.role==='spv'?d.prof.filter(x=>x.spv_id===p.id).length:0;
+  const chRole=async(p,nr)=>{
+    if(nr===p.role)return;
+    const n=subCount(p),sub=p.role==='koordinator'?'relawan':'Korel';
+    if(!confirm('Ubah peran '+p.nama+' dari '+ROLE_LBL[p.role]+' menjadi '+ROLE_LBL[nr]+'?'+(n?'\n\n'+n+' '+sub+' di bawahnya akan dilepas dari atasan ini (jadi "tanpa '+(p.role==='koordinator'?'korel':'SPV')+'") dan perlu ditempatkan ulang.':'')+'\n\nRiwayat kunjungan dan donasi tetap tersimpan. '+p.nama+' harus login ulang agar menu barunya muncul.'))return;
+    const patch={role:nr,koordinator_id:null,spv_id:null};
+    let r=await sb.from('profiles').update(patch).eq('id',p.id);
+    if(r.error&&/divisi/i.test(r.error.message||'')&&nr!=='relawan')r=await sb.from('profiles').update({...patch,divisi_id:null}).eq('id',p.id);
+    if(r.error)return err(r.error);
+    if(n){const col=p.role==='koordinator'?'koordinator_id':'spv_id';const r2=await sb.from('profiles').update({[col]:null}).eq(col,p.id);if(r2.error)err(r2.error);}
+    reload();
+  };
   const manage=async(body)=>{const r=await sb.functions.invoke('admin-manage-user',{body});if(r.error||!r.data||r.data.error){alert('Gagal: '+((r.data&&r.data.error)||(r.error&&r.error.message)||'tidak diketahui'));return null;}return r.data;};
   const toggle=async p=>{if(!confirm((p.aktif?'Nonaktifkan ':'Aktifkan ')+p.nama+'?'))return;if(await manage({action:'set_active',user_id:p.id,aktif:!p.aktif}))reload();};
   const reset=async p=>{const pw=prompt('Password baru untuk '+p.nama+' (minimal 8 karakter).\nKosongkan lalu OK untuk dibuat otomatis.');if(pw===null)return;const v=pw.trim();if(v&&v.length<8)return alert('Password minimal 8 karakter');const r=await manage({action:'reset_password',user_id:p.id,password:v||undefined});if(r)setRp(r);};
@@ -572,7 +584,7 @@ function Team({d,reload}){
     <div class="card sc"><b>Pengguna (${list.length})</b>
       <div class="row2"><div><select value=${fr} onChange=${e=>{setFr(e.target.value);setN(100);}}><option value="">Semua peran</option><option value="spv">SPV</option><option value="koordinator">Korel</option><option value="relawan">Relawan</option></select></div><div><input placeholder="Cari nama" value=${qs} onInput=${e=>{setQs(e.target.value);setN(100);}}/></div></div>
       <table><thead><tr><th>Nama</th><th>Peran</th><th>Atasan</th><th>Divisi</th><th>Prodi</th><th>Status</th><th></th></tr></thead><tbody>
-      ${list.slice(0,n).map(p=>html`<tr key=${p.id}><td>${p.nama}<div class="mut" style=${{fontSize:11}}>${p.no_hp||''}</div></td><td>${ROLE_LBL[p.role]}</td>
+      ${list.slice(0,n).map(p=>html`<tr key=${p.id}><td>${p.nama}<div class="mut" style=${{fontSize:11}}>${p.no_hp||''}</div></td><td><select value=${p.role} onChange=${e=>chRole(p,e.target.value)}><option value="spv">SPV</option><option value="koordinator">Korel</option><option value="relawan">Relawan</option></select></td>
         <td>${p.role==='relawan'?html`<select value=${p.koordinator_id||''} onChange=${e=>upd(p.id,{koordinator_id:e.target.value||null})}><option value="">-</option>${koors.map(k=>html`<option key=${k.id} value=${k.id}>${k.nama}</option>`)}</select>`:p.role==='koordinator'?html`<select value=${p.spv_id||''} onChange=${e=>upd(p.id,{spv_id:e.target.value||null})}><option value="">-</option>${spvs.map(k=>html`<option key=${k.id} value=${k.id}>${k.nama}</option>`)}</select>`:'-'}</td>
         <td>${true?html`<select value=${p.divisi_id?String(p.divisi_id):''} onChange=${e=>upd(p.id,{divisi_id:e.target.value?+e.target.value:null})}><option value="">-</option>${d.div.filter(x=>x.aktif||x.id===p.divisi_id).map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select>`:'-'}</td>
         <td><select value=${p.prodi_id?String(p.prodi_id):''} onChange=${e=>upd(p.id,{prodi_id:e.target.value?+e.target.value:null})}><option value="">-</option>${d.prodi.filter(x=>x.aktif||x.id===p.prodi_id).map(x=>html`<option key=${x.id} value=${String(x.id)}>${x.nama}</option>`)}</select></td>
@@ -825,10 +837,10 @@ function Main({me,out}){
   ${!isR&&html`<div class="hello"><span class="avt">${ini(me.nama)}</span><div><b>Halo, ${first}</b><div class="mut">Pantau kunjungan dan donasi tim hari ini.</div></div></div>`}
   ${me.role==='koordinator'&&html`<div style=${{marginTop:12}}><div class="tabs">${korTabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}</div>${tab==='mon'&&html`<${Coord} d=${d}/>`}${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab('riwayat');}}/>`}${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:12}}><b>Riwayat Kunjungan Saya</b><span class="mut">${mine.length} data</span></div><${Tbl} list=${mine} rc=${setRc} act=${actR}/></div>`}</div>`}
   ${(me.role==='owner'||me.role==='spv')&&html`<div><div class="tabs">${tabs.map(([k,l])=>html`<button key=${k} class=${tab===k?'a':''} onClick=${()=>setTab(k)}>${l}</button>`)}<button class="x" onClick=${()=>exportCsv(d.k,d.div)}>Ekspor CSV</button></div>
-    ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}${tab==='rkp'&&html`<${Rekap} d=${d}/>`}${tab==='kun'&&html`<${Kun} d=${d} reload=${reload} canV=${me.role==='owner'} rc=${me.role==='owner'?setRc:null}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload} rc=${me.role==='owner'?setRc:null}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab(me.role==='owner'?'kun':'riwayat');}}/>`}${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:12}}><b>Riwayat Kunjungan Saya</b><span class="mut">${mine.length} data</span></div><${Tbl} list=${mine} rc=${setRc} act=${actR}/></div>`}</div>`}
+    ${tab==='dash'&&html`<${Dash} d=${d}/>`}${tab==='klas'&&html`<${Klasemen} d=${d} me=${me}/>`}${tab==='rkp'&&html`<${Rekap} d=${d}/>`}${tab==='kun'&&html`<${Kun} d=${d} reload=${reload} rc=${setRc} canV=${me.role==='owner'}/>`}${tab==='ver'&&html`<${Verif} d=${d} reload=${reload} rc=${setRc}/>`}${tab==='mst'&&html`<${Master} key=${d.lem?'l':'n'} d=${d} reload=${reload}/>`}${tab==='tim'&&html`<${Team} d=${d} reload=${reload}/>`}${tab==='lapor'&&html`<${Form} me=${me} d=${d} reload=${reload} pre=${pre} done=${()=>{setPre('');setTab(me.role==='owner'?'kun':'riwayat');}}/>`}${tab==='riwayat'&&html`<div><div class="sh" style=${{marginTop:12}}><b>Riwayat Kunjungan Saya</b><span class="mut">${mine.length} data</span></div><${Tbl} list=${mine} rc=${setRc} act=${actR}/></div>`}</div>`}
   </div>
   ${isR&&html`<nav class="nav">${nav.map(([k,l,p])=>html`<button key=${k} class=${(tab===k?'a ':'')+(k==='lapor'?'fab':'')} onClick=${()=>setTab(k)}><span class="ni"><${Ic} d=${p}/></span>${l}</button>`)}</nav>`}
-  ${rc&&html`<${Receipt} v=${rc} lem=${d.lem} jpg=${me.role!=='owner'} onClose=${()=>setRc(null)}/>`}</div>`;
+  ${rc&&html`<${Receipt} v=${rc} lem=${d.lem} jpg=${true} onClose=${()=>setRc(null)}/>`}</div>`;
 }
 
 function App(){
